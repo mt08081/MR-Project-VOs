@@ -1,0 +1,6 @@
+   # Ignore all files with common video extensions
+   *.mp4
+   *.mov
+   *.avi
+   *.mkv
+   *.webm
