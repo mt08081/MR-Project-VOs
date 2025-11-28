@@ -1,6 +1,5 @@
 function in_cone = check_angles(test_angle, intervals)
     % CHECK_ANGLES Checks if a test_angle lies within any forbidden angular intervals.
-    % Handles the -pi to pi wrap-around correctly.
     
     in_cone = false;
     if isempty(intervals)
@@ -15,7 +14,7 @@ function in_cone = check_angles(test_angle, intervals)
         lower = atan2(sin(intervals(i,1)), cos(intervals(i,1)));
         upper = atan2(sin(intervals(i,2)), cos(intervals(i,2)));
         
-        % Check if the interval wraps around the cut (pi/-pi)
+        % Check if the interval wraps around pi/-pi
         if lower <= upper
             % Standard case (e.g., -0.5 to 0.5)
             if test_angle >= lower && test_angle <= upper
@@ -23,10 +22,7 @@ function in_cone = check_angles(test_angle, intervals)
             end
         else
             % Wrap-around case (e.g., 3.0 to -3.0)
-            % It is inside if it's greater than lower OR less than upper
-            if test_angle >= lower |
-
-| test_angle <= upper % <--- FIXED: Combined line
+            if test_angle >= lower || test_angle <= upper
                 in_cone = true; return;
             end
         end
