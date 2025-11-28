@@ -1,84 +1,64 @@
-function v_opt = plan_VO(robot, obstacles)
-    % PLAN_VO Computes the optimal velocity using the Velocity Obstacle method.
-    % Returns v_opt as a [vx; vy] vector.
-
+function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
+    % PLAN_VO Computes optimal velocity and returns cone constraints for visualization.
+    % Returns:
+    %   v_opt: [vx; vy]
+    %   forbidden_intervals: [min_angle, max_angle] matrix of cones
+    
     % 1. Determine Preferred Velocity (Vector to Goal)
     vec_to_goal = robot.goal - robot.pos;
     dist_to_goal = norm(vec_to_goal);
     
-    % Clamp to max speed
     if dist_to_goal > 0.1
         v_pref = (vec_to_goal / dist_to_goal) * robot.v_max;
     else
         v_pref = [0; 0];
         v_opt = [0; 0];
+        forbidden_intervals = []; % No cones if stopped
         return;
     end
     
-    % 2. Build Constraints (The VO Cones)
+    % 2. Build Constraints (VO Cones)
     forbidden_intervals = [];
     
     for i = 1:length(obstacles)
         obs = obstacles(i);
-        
-        % Relative Position and Velocity
         p_rel = obs.pos - robot.pos;
         dist = norm(p_rel);
-        
-        % Minkowski Sum Radius (Robot + Obstacle)
         r_combined = robot.radius + obs.radius;
         
-        % Safety Check: If already colliding, return zero velocity immediately
         if dist <= r_combined
             v_opt = [0; 0]; return; 
         end
         
-        % --- Geometric Construction of the Cone ---
-        % Angle of the vector pointing to the obstacle center
         phi = atan2(p_rel(2), p_rel(1));
-        
-        % Half-angle of the cone (tangent lines)
-        % asin(R / dist) gives the angle offset
         alpha = asin(r_combined / dist);
         
-        % The cone is defined in Relative Velocity Space.
-        % However, check_angles works in absolute angles. 
-        % For Static Obstacles: VO_cone is centered at phi.
-        % For Dynamic Obstacles: This logic gets more complex (see RVO), 
-        % but for basic VO we check if our velocity vector falls inside this angle.
-        
+        % Store the interval [phi - alpha, phi + alpha]
         forbidden_intervals = [forbidden_intervals; phi - alpha, phi + alpha];
     end
     
-    % 3. Optimization (Sampling Search)
-    % We search for a velocity direction close to v_pref that is not in a cone.
-    
+    % 3. Optimization (Sampling)
     current_test_angle = atan2(v_pref(2), v_pref(1));
     best_v = [0; 0];
     found_safe = false;
     
-    % Search pattern: Check 0 deg (preferred), then +/- 5, +/- 10...
+    % Check angles: 0, +5, -5, +10, -10 ...
     search_pattern = [0, 5, -5, 10, -10, 15, -15, 30, -30, 45, -45, 60, -60, 90, -90]; 
     
     for k = search_pattern
         test_angle = current_test_angle + deg2rad(k);
-        
-        % Check if this direction is forbidden
         in_cone = check_angles(test_angle, forbidden_intervals);
         
         if ~in_cone
-            % If safe, we select this velocity
             best_v = [robot.v_max * cos(test_angle); robot.v_max * sin(test_angle)];
             found_safe = true;
             break;
         end
     end
     
-    % 4. Fallback
     if found_safe
         v_opt = best_v;
     else
-        % If trapped, stop
         v_opt = [0; 0];
     end
 end
