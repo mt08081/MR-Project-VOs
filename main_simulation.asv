@@ -13,29 +13,26 @@ SAVE_VIDEO = true;
 VIDEO_NAME = 'output/VO_Output.mp4'
 
 
-% To switch between scenarios, change the following value:
-CHOICE = 2
+%{
+% Scenario 1:
+robot = Robot(1, [0; 0], 0, 0.5, 2.0, [10; 10]);
+obstacles = [
+    Obstacle([5; 5], 1.0),      % Center
+    Obstacle([7; 2], 0.8),      % Bottom Right
+    Obstacle([3; 8], 0.8)       % Top Left
+];
 
-if CHOICE == 1
-    % Scenario 1:
-    robot = Robot(1, [0; 0], 0, 0.5, 2.0, [10; 10]);
-    obstacles = [
-        Obstacle([5; 5], 1.0),      % Center
-        Obstacle([7; 2], 0.8),      % Bottom Right
-        Obstacle([3; 8], 0.8)       % Top Left
-    ];
-elseif CHOICE == 2
-    % Scenario 2: The U-Shape Trap (Stress Test)
-    robot = Robot(1, [0; 5], 0, 0.5, 2.0, [12; 5]); % Start Left, Go Right
-    obstacles = [
-        % Vertical Back Wall
-        Obstacle([6; 5], 0.6), Obstacle([6; 4.2], 0.6), Obstacle([6; 5.8], 0.6),
-        % Top Wall
-        Obstacle([7; 6.2], 0.6), Obstacle([8; 6.2], 0.6),
-        % Bottom Wall
-        Obstacle([7; 3.8], 0.6), Obstacle([8; 3.8], 0.6)
-    ];
-end
+
+% Scenario 2: The U-Shape Trap (Stress Test)
+robot = Robot(1, [0; 5], 0, 0.5, 2.0, [12; 5]); % Start Left, Go Right
+obstacles = [
+    % Vertical Back Wall
+    Obstacle([6; 5], 0.6), Obstacle([6; 4.2], 0.6), Obstacle([6; 5.8], 0.6),
+    % Top Wall
+    Obstacle([7; 6.2], 0.6), Obstacle([8; 6.2], 0.6),
+    % Bottom Wall
+    Obstacle([7; 3.8], 0.6), Obstacle([8; 3.8], 0.6)
+];
 
 % --- VIDEO WRITER SETUP ---
 if SAVE_VIDEO
@@ -138,25 +135,11 @@ for t = 0:dt:T_max
         string(ij_status(dist_to_goal, velocity_mag)));
 
     drawnow limitrate;
-
-    % Video Recording
-    if SAVE_VIDEO
-        frame = getframe(gcf);
-        writeVideo(v, frame);
-    else
-        % If NOT recording, manually slow down the live view
-        pause(0.05); 
-    end
     
     if dist_to_goal < 0.5
         disp('Goal Reached!');
         break;
     end
-end
-
-if SAVE_VIDEO
-    close(v);
-    disp(['Video saved to: ' VIDEO_NAME]);
 end
 
 % Helper function
