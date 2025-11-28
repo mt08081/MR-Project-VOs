@@ -1,10 +1,7 @@
 function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
-    % PLAN_VO Computes optimal velocity and returns cone constraints for visualization.
-    % Returns:
-    %   v_opt: [vx; vy]
-    %   forbidden_intervals: [min_angle, max_angle] matrix of cones
+    % PLAN_VO Computes optimal velocity with a Sensor Range limit.
     
-    % 1. Determine Preferred Velocity (Vector to Goal)
+    % 1. Determine Preferred Velocity
     vec_to_goal = robot.goal - robot.pos;
     dist_to_goal = norm(vec_to_goal);
     
@@ -13,17 +10,28 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     else
         v_pref = [0; 0];
         v_opt = [0; 0];
-        forbidden_intervals = []; % No cones if stopped
+        forbidden_intervals = [];
         return;
     end
     
     % 2. Build Constraints (VO Cones)
     forbidden_intervals = [];
     
+    % --- CONFIG: SENSOR RANGE ---
+    % Only consider obstacles within 4 meters. 
+    % This prevents "Paralysis by Infinity" in hallways.
+    SENSOR_RANGE = 5.0; 
+    
     for i = 1:length(obstacles)
         obs = obstacles(i);
         p_rel = obs.pos - robot.pos;
         dist = norm(p_rel);
+        
+        % --- FIX: Ignore far away obstacles ---
+        if dist > SENSOR_RANGE
+            continue; 
+        end
+        
         r_combined = robot.radius + obs.radius;
         
         if dist <= r_combined
@@ -33,7 +41,6 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
         phi = atan2(p_rel(2), p_rel(1));
         alpha = asin(r_combined / dist);
         
-        % Store the interval [phi - alpha, phi + alpha]
         forbidden_intervals = [forbidden_intervals; phi - alpha, phi + alpha];
     end
     
@@ -42,7 +49,7 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     best_v = [0; 0];
     found_safe = false;
     
-    % Check angles: 0, +5, -5, +10, -10 ...
+    % Check angles
     search_pattern = [0, 5, -5, 10, -10, 15, -15, 30, -30, 45, -45, 60, -60, 90, -90]; 
     
     for k = search_pattern
@@ -59,6 +66,7 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     if found_safe
         v_opt = best_v;
     else
+        % If trapped, stop
         v_opt = [0; 0];
     end
 end
