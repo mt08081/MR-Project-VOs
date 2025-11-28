@@ -1,5 +1,5 @@
 % main_simulation.m
-% Phase 1.5: VO with Advanced Visualization & HUD (Fixed)
+% Phase 1.5: VO with Professional Visualization (Legend Fix)
 % ---------------------------------------------------------
 clc; clear; close all;
 
@@ -16,72 +16,97 @@ obstacles = [
 ];
 
 % --- VISUALIZATION SETUP ---
+% 1. Create Figure and Static Axis
 fig = figure('Name', 'VO Simulation', 'Color', 'w', 'Position', [100 100 1000 800]);
-ax = axes('Position', [0.1 0.1 0.6 0.8]); % Leave room on right for Legend
+ax = axes('Position', [0.1 0.1 0.6 0.8]); % Leave room for Legend
 axis equal; grid on; hold on;
 axis([-2 12 -2 12]);
 xlabel('X (m)'); ylabel('Y (m)');
 
-% Create Static Legend (Dummy Handles)
-h_rob = plot(NaN,NaN, 'bo', 'MarkerFaceColor', 'b', 'DisplayName', 'Robot');
-h_obs = plot(NaN,NaN, 'ro', 'MarkerFaceColor', 'r', 'DisplayName', 'Obstacle (Physical)');
-h_inf = plot(NaN,NaN, 'r--', 'DisplayName', 'Obstacle (Minkowski/Safety)');
-h_goal = plot(NaN,NaN, 'gx', 'LineWidth', 2, 'DisplayName', 'Goal');
-h_cone = patch(NaN, NaN, 'm', 'FaceAlpha', 0.2, 'EdgeColor', 'm', 'LineStyle', '--', 'DisplayName', 'Velocity Obstacle (Forbidden)');
-h_cmd = quiver(NaN,NaN,0,0, 'Color', 'm', 'LineStyle', '--', 'LineWidth', 1.5, 'DisplayName', 'Commanded Velocity');
+% 2. Draw Static Elements (Goal & Obstacles)
+% These will NOT be deleted during the loop
+plot(robot.goal(1), robot.goal(2), 'gx', 'MarkerSize', 10, 'LineWidth', 2);
 
-legend([h_rob, h_obs, h_inf, h_goal, h_cone, h_cmd], 'Location', 'northeastoutside');
+for i = 1:length(obstacles)
+    viscircles(obstacles(i).pos', obstacles(i).radius, 'Color', 'r');
+    % Safety Margin (Minkowski)
+    viscircles(obstacles(i).pos', obstacles(i).radius + robot.radius, ...
+        'Color', 'r', 'LineStyle', '--', 'LineWidth', 0.5);
+end
+
+% 3. Create Legend using "Dummy Handles"
+% We plot invisible points just to populate the legend correctly
+h_rob_leg  = plot(NaN,NaN, 'bo', 'MarkerFaceColor', 'b', 'DisplayName', 'Robot');
+h_obs_leg  = plot(NaN,NaN, 'ro', 'MarkerFaceColor', 'r', 'DisplayName', 'Obstacle (Physical)');
+h_inf_leg  = plot(NaN,NaN, 'r--', 'DisplayName', 'Obstacle (Safety Margin)');
+h_goal_leg = plot(NaN,NaN, 'gx', 'LineWidth', 2, 'DisplayName', 'Goal');
+h_cone_leg = patch(NaN, NaN, 'm', 'FaceAlpha', 0.2, 'EdgeColor', 'm', 'LineStyle', '--', 'DisplayName', 'VO Cone (Forbidden)');
+% h_cmd_leg  = quiver(NaN,NaN,0,0, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 2, 'DisplayName', 'Commanded Velocity');
+
+% Create the legend and lock it so it doesn't auto-update with "data1"
+lgd = legend([h_rob_leg, h_obs_leg, h_inf_leg, h_goal_leg, h_cone_leg], ...
+    'Location', 'northeastoutside');
+lgd.AutoUpdate = 'off'; 
+
+% 4. Initialize HUD Text (Empty for now)
+ax_lims = axis(ax);
+h_hud = text(ax_lims(1)+0.5, ax_lims(4)-1, '', ...
+    'BackgroundColor', 'b', 'Color', 'w', 'EdgeColor', 'k', 'FontName', 'Consolas');
 
 % --- MAIN LOOP ---
+% Store handles of dynamic objects to delete them next frame
+h_dynamic = []; 
+
 for t = 0:dt:T_max
     
-    % 1. PLAN: Get velocity AND cones
-    [v_opt, cones] = plan_VO(robot, obstacles);
-    
-    % 2. ACT
-    robot = robot.move(v_opt, dt);
-    
-    % 3. VISUALIZE
-    cla(ax); % Clear only the plotting area
-    
-    % -- Draw Static Elements --
-    plot(robot.goal(1), robot.goal(2), 'gx', 'MarkerSize', 10, 'LineWidth', 2);
-    
-    % -- Draw Obstacles & Safety Bounds --
-    for i = 1:length(obstacles)
-        viscircles(obstacles(i).pos', obstacles(i).radius, 'Color', 'r');
-        viscircles(obstacles(i).pos', obstacles(i).radius + robot.radius, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 0.5);
+    % 1. CLEANUP: Delete only the moving objects from the previous frame
+    if ~isempty(h_dynamic)
+        delete(h_dynamic);
     end
     
-    % -- Draw Cones --
+    % 2. PLAN
+    [v_opt, cones] = plan_VO(robot, obstacles);
+    
+    % 3. ACT
+    robot = robot.move(v_opt, dt);
+    
+    % 4. VISUALIZE (Draw new dynamic objects)
+    
+    % Draw Cones
+    h_cones = [];
     if ~isempty(cones)
         for i = 1:size(cones, 1)
-            plot_cone(robot.pos, cones(i,1), cones(i,2), 5.0, 'm');
+            % plot_cone returns a patch handle, we collect them
+            p_h = plot_cone(robot.pos, cones(i,1), cones(i,2), 5.0, 'm');
+            h_cones = [h_cones; p_h];
         end
     end
     
-    % -- Draw Robot --
-    viscircles(robot.pos', robot.radius, 'Color', 'b');
+    % Draw Robot Body
+    h_rob_body = viscircles(robot.pos', robot.radius, 'Color', 'b');
     
-    % -- Draw Vectors --
-    quiver(robot.pos(1), robot.pos(2), cos(robot.theta), sin(robot.theta), 0.5, 'Color', 'g');
-    quiver(robot.pos(1), robot.pos(2), v_opt(1), v_opt(2), 0, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 2);
+    % Draw Heading Vector (Green)
+    h_head = quiver(robot.pos(1), robot.pos(2), cos(robot.theta), sin(robot.theta), ...
+        0.5, 'Color', 'g', 'LineWidth', 1);
+        
+    % Draw Commanded Velocity (Red Dashed - Your custom choice)
+    h_vel = quiver(robot.pos(1), robot.pos(2), v_opt(1), v_opt(2), ...
+        0, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 2);
     
-    % -- HUD (Fixed) --
+    % Group all dynamic handles so we can delete them next loop
+    h_dynamic = [h_cones; h_rob_body; h_head; h_vel];
+    
+    % Update HUD Text (Just change the String property, don't redraw)
     dist_to_goal = norm(robot.goal - robot.pos);
     velocity_mag = norm(v_opt);
     
-    hud_text = sprintf([...
+    h_hud.String = sprintf([...
         'Time:        %.2f s\n' ...
         'Dist to Goal: %.2f m\n' ...
         'Cmd Speed:    %.2f m/s\n' ...
         'Status:       %s'], ...
         t, dist_to_goal, velocity_mag, ...
         string(ij_status(dist_to_goal, velocity_mag)));
-    
-    % FIX: Retrieve axis limits into a variable first
-    ax_lims = axis(ax); 
-    text(ax_lims(1)+0.5, ax_lims(4)-1, hud_text, 'BackgroundColor', 'b', 'EdgeColor', 'k', 'FontName', 'Consolas');
 
     drawnow limitrate;
     
