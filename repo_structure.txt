@@ -1,0 +1,24 @@
+MR-Project-VOs/
+│
+├── main_simulation.m          # ENTRY POINT — run this to see the demo
+├── README.md                  # Setup + team instructions
+│
+├── classes/                   # Physical object abstractions
+│   ├── Robot.m                # Robot state + unicycle kinematics
+│   ├── Obstacle.m             # Static / dynamic obstacle model
+│   └── Simulator.m            # Time loop, plotting, world management
+│
+├── algorithms/                # The "brains" — core project logic
+│   ├── plan_VO.m              # PHASE 1 — Velocity Obstacles
+│   ├── plan_RVO.m             # PHASE 2 — Reciprocal VOs
+│   └── plan_HRVO.m            # PHASE 3 — Hybrid RVOs
+│
+├── utils/                     # Math + visualization helpers
+│   ├── get_tangents.m         # Geometry for collision cones
+│   ├── check_collision.m      # Detect unsafe velocities
+│   └── plot_cone.m            # Draw forbidden velocity regions
+│   └── check_angles.m
+│
+└── scenarios/                 # Test configurations
+    ├── scenario_static.m      # 1 robot vs static obstacle (for prof meeting)
+    └── scenario_hallway.m     # Head-on 2-robot test (HRVO demo)
