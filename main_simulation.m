@@ -1,12 +1,13 @@
 % main_simulation.m
-% Phase 1.8: Final Phase 1 Simulation (Scenario 5 Added)
+% Phase 1.9: Modularized VO Simulation
 % ---------------------------------------------------------
 clc; clear; close all;
 addpath('classes'); addpath('algorithms'); addpath('utils');
+addpath('scenarios/VOs'); % Make sure this path exists!
 
 % --- CONFIGURATION ---
 dt = 0.1; 
-T_max = 50; % Extended time for complex scenario
+T_max = 50; 
 SAVE_VIDEO = true;
 
 % Auto-stop logic
@@ -14,96 +15,26 @@ blocked_start_sim_time = NaN;
 MAX_BLOCKED_DURATION = 5.0;   
 
 % --- SCENARIO SELECTION ---
-% 1=Random, 2=U-Trap, 3=Hallway, 4=Busy Plaza, 5=Very Busy Plaza
-CHOICE =3; 
+% 1=Random, 2=U-Trap, 3=Hallway, 4=Somewhat Busy, 5=Very Busy
+CHOICE = 4; 
 
-if CHOICE == 1, scenario_name = 'Random_Blocks';
-elseif CHOICE == 2, scenario_name = 'U_Shape_Trap';
-elseif CHOICE == 3, scenario_name = 'Hallway_Collision';
-elseif CHOICE == 4, scenario_name = 'Somewhat_Busy_Plaza';
-elseif CHOICE == 5, scenario_name = 'Very_Busy_Plaza';
-else, scenario_name = 'Unknown'; end
-
-VIDEO_NAME = sprintf('output/VO_%s.mp4', scenario_name);
-fprintf('Running Scenario: %s\nSaving to: %s\n', scenario_name, VIDEO_NAME);
-
-% Initialize 'robot2'
-robot2 = []; 
-map_bounds = [-2 12 -2 12]; % Default bounds
-
-% --- SCENARIO SETUP ---
-if CHOICE == 1
-    % Scenario 1: Random Blocks
-    robot = Robot(1, [0; 0], 0, 0.5, 2.0, [10; 10]);
-    obstacles = [Obstacle([5; 5], 1.0), Obstacle([7; 2], 0.8), Obstacle([3; 8], 0.8)];
-
-elseif CHOICE == 2
-    % Scenario 2: U-Shape Trap
-    robot = Robot(1, [0; 5], 0, 0.5, 2.0, [12; 5]);
-    obstacles = [
-        Obstacle([6; 5], 0.6), Obstacle([6; 4.2], 0.6), Obstacle([6; 5.8], 0.6), ...
-        Obstacle([7; 6.2], 0.6), Obstacle([8; 6.2], 0.6), ...
-        Obstacle([7; 3.8], 0.6), Obstacle([8; 3.8], 0.6)
-    ];
-    map_bounds = [-2 14 -2 12];
-
-elseif CHOICE == 3
-    % Scenario 3: Hallway Collision
-    robot = Robot(1, [0; 5], 0, 0.5, 2.0, [12; 5]);
-    robot2 = Robot(2, [12; 5], pi, 2.0, 2.0, [0; 5]); robot2.color = 'r';
-    obstacles = [];
-    for x = 0:2:12
-        obstacles = [obstacles, Obstacle([x; 8], 0.5), Obstacle([x; 2], 0.5)];
-    end
-    map_bounds = [-2 14 -2 12];
-
-elseif CHOICE == 4
-    % Scenario 4: Somewhat Busy Plaza
-    robot = Robot(1, [0; 0], 0, 0.5, 3.0, [25; 25]);
-    
-    obstacles = [];
-    % Static Pillars
-    obstacles = [obstacles, Obstacle([10; 10], 1.5), Obstacle([18; 5], 1.0), Obstacle([5; 18], 1.0)];
-    % Dynamic Agents
-    obstacles = [obstacles, Obstacle([0; 12], 0.6, [1.5; -0.2])]; % Obs 1
-    obstacles = [obstacles, Obstacle([20; 0], 0.6, [-1.0; 1.0])]; % Obs 2
-    obstacles = [obstacles, Obstacle([25; 15], 0.6, [0.0; -2.0])]; % Obs 3
-    
-    map_bounds = [-5 30 -5 30];
-
-elseif CHOICE == 5
-    % Scenario 5: THE VERY BUSY PLAZA
-    % Robot 1: Bottom-Left -> Top-Right
-    robot = Robot(1, [0; 0], 0, 0.5, 3.0, [25; 25]);
-    
-    % Robot 2: Bottom-Right -> Top-Left (Crossing path)
-    robot2 = Robot(2, [25; 0], pi, 0.5, 3.0, [0; 25]); 
-    robot2.color = 'r';
-    
-    obstacles = [];
-    
-    % Static Obstacles (Crowded center forces decision)
-    obstacles = [obstacles, ...
-        Obstacle([12.5; 12.5], 2.0), ... % Huge Central Fountain
-        Obstacle([5; 20], 1.0), ...
-        Obstacle([20; 5], 1.0), ...
-        Obstacle([8; 8], 0.8), ...
-        Obstacle([17; 17], 0.8)];
-        
-    % Dynamic Obstacles (Chaos)
-    % 1. Horizontal crossers
-    obstacles = [obstacles, Obstacle([0; 10], 0.6, [1.2; 0])];
-    obstacles = [obstacles, Obstacle([25; 15], 0.6, [-1.4; 0])];
-    
-    % 2. Vertical crossers
-    obstacles = [obstacles, Obstacle([10; 0], 0.6, [0; 1.0])];
-    obstacles = [obstacles, Obstacle([15; 25], 0.6, [0; -1.2])];
-    
-    % 3. Diagonal sniper
-    obstacles = [obstacles, Obstacle([5; 25], 0.6, [0.5; -0.5])];
-    
-    map_bounds = [-5 30 -5 30];
+switch CHOICE
+    case 1
+        [robot, robot2, obstacles, map_bounds, scn_name] = basic();
+    case 2
+        [robot, robot2, obstacles, map_bounds, scn_name] = u_trap();
+    case 3
+        [robot, robot2, obstacles, map_bounds, scn_name] = setup_hallway();
+    case 4
+        [robot, robot2, obstacles, map_bounds, scn_name] = somewhat_busy();
+    case 5
+        [robot, robot2, obstacles, map_bounds, scn_name] = very_busy();
+    otherwise
+        error('Invalid Scenario Choice');
 end
+
+VIDEO_NAME = sprintf('output/VO_%s.mp4', scn_name);
+fprintf('Running Scenario: %s\nSaving to: %s\n', scn_name, VIDEO_NAME);
 
 % --- VIDEO WRITER ---
 if SAVE_VIDEO
@@ -158,7 +89,10 @@ for t = 0:dt:T_max
     % 2. ROBOT 1 PLAN & MOVE
     obs_for_r1 = obstacles;
     if ~isempty(robot2)
-        % Treat Robot 2 as a physical obstacle
+        % Treat Robot 2 as a physical obstacle with its current velocity
+        % Note: For full VO, we should use robot2.vel here!
+        % Current simplistic Robot class doesn't store 'vel' vector explicitly (it computes v,w).
+        % We approximate it as static or calculate it. For now, static safety.
         obs_for_r1 = [obs_for_r1, Obstacle(robot2.pos, robot2.radius, [0;0])];
     end
     [v_opt, cones] = plan_VO(robot, obs_for_r1);
@@ -201,7 +135,7 @@ for t = 0:dt:T_max
     h_head = quiver(robot.pos(1), robot.pos(2), cos(robot.theta), sin(robot.theta), 0.5, 'Color', 'g', 'LineWidth', 1);
     h_vel = quiver(robot.pos(1), robot.pos(2), v_opt(1), v_opt(2), 0, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 2);
     
-    % Draw Obstacles
+    % Draw Obstacles (Redrawn for motion)
     h_obs_all = [];
     for k = 1:length(obstacles)
         h_o = viscircles(obstacles(k).pos', obstacles(k).radius, 'Color', 'r');
