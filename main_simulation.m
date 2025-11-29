@@ -89,18 +89,17 @@ for t = 0:dt:T_max
     % 2. ROBOT 1 PLAN & MOVE
     obs_for_r1 = obstacles;
     if ~isempty(robot2)
-        % Treat Robot 2 as a physical obstacle with its current velocity
-        % Note: For full VO, we should use robot2.vel here!
-        % Current simplistic Robot class doesn't store 'vel' vector explicitly (it computes v,w).
-        % We approximate it as static or calculate it. For now, static safety.
-        obs_for_r1 = [obs_for_r1, Obstacle(robot2.pos, robot2.radius, [0;0])];
+        % Treat Robot 2 as a physical obstacle
+        % FIX: Use robot2.vel instead of [0;0]
+        obs_for_r1 = [obs_for_r1, Obstacle(robot2.pos, robot2.radius, robot2.vel)];
     end
     [v_opt, cones] = plan_VO(robot, obs_for_r1);
     robot = robot.move(v_opt, dt);
     
     % 3. ROBOT 2 PLAN & MOVE
     if ~isempty(robot2)
-        obs_for_r2 = [obstacles, Obstacle(robot.pos, robot.radius, [0;0])];
+        % FIX: Use robot.vel instead of [0;0]
+        obs_for_r2 = [obstacles, Obstacle(robot.pos, robot.radius, robot.vel)];
         [v_opt2, ~] = plan_VO(robot2, obs_for_r2);
         robot2 = robot2.move(v_opt2, dt);
     end
