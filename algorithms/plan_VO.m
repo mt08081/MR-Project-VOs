@@ -23,6 +23,8 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     forbidden_intervals = []; 
     
     SENSOR_RANGE = 5.0; 
+
+    BUFFER_RADII = 0.3;
     
     for i = 1:length(obstacles)
         obs = obstacles(i);
@@ -31,7 +33,7 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
         
         if dist > SENSOR_RANGE, continue; end
         
-        r_combined = robot.radius + obs.radius + 0.5;
+        r_combined = robot.radius + obs.radius + BUFFER_RADII;
         
         % Safety Padding: If we are too close, treat as collision
         if dist <= r_combined

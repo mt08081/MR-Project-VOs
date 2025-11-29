@@ -1,28 +1,32 @@
 MR-Project-VOs/
 │
-├── main_simulation.m          # ENTRY POINT — run this to see the demo
-├── README.md                  # Setup + team instructions
-├── .gitignore                 # I don't think ye mene sahi kiya hai
+├── main_simulation.m          # ENTRY POINT — Controls the loop, switching, and visualization
+├── README.md                  # Project documentation
+├── .gitignore                 # Ignores generated videos (*.mp4) and temp files
 │
-├── classes/                   # Physical object abstractions
-│   ├── Robot.m                # Robot state + unicycle kinematics
-│   ├── Obstacle.m             # Static / dynamic obstacle model
-│   └── Simulator.m            # Time loop, plotting, world management
+├── classes/                   # Physical object definitions
+│   ├── Robot.m                # Robot state (pos, vel) + Unicycle Kinematics + Controller
+│   ├── Obstacle.m             # Standardized object for Static Walls, Dynamic Blocks, and Agents
+│   └── Simulator.m            # (Legacy/Future use for encapsulation)
 │
-├── algorithms/                # The "brains" — core project logic
-│   ├── plan_VO.m              # PHASE 1 — Velocity Obstacles
-│   ├── plan_RVO.m             # PHASE 2 — Reciprocal VOs
-│   └── plan_HRVO.m            # PHASE 3 — Hybrid RVOs
+├── algorithms/                # The "Brains" - Path Planning Logic
+│   ├── plan_VO.m              # PHASE 1 — Dynamic Velocity Obstacles (Implemented)
+│   ├── plan_RVO.m             # PHASE 2 — Reciprocal VOs (Placeholder/Next Step)
+│   └── plan_HRVO.m            # PHASE 3 — Hybrid RVOs (Placeholder/Future)
 │
-├── utils/                     # Math + visualization helpers
-│   ├── get_tangents.m         # Geometry for collision cones
-│   ├── check_collision.m      # Detect unsafe velocities
-│   └── plot_cone.m            # Draw forbidden velocity regions
-│   └── check_angles.m
+├── scenarios/                 # Modular Scenario Definitions
+│   └── VOs/                   # Phase 1 & 1.5 Scenarios
+│       ├── basic.m            # 1. Random Static Blocks
+│       ├── u_trap.m           # 2. Local Minimum Stress Test
+│       ├── setup_hallway.m    # 3. Two Robots Head-On (RVO Motivation)
+│       ├── somewhat_busy.m    # 4. Robot vs Moving Obstacles
+│       └── very_busy.m        # 5. The Plaza (Complex Dynamic Environment)
 │
-├── output/     
-│   └── *.mp4                  # (Can add folders here to separate VO, RVO and HRVO outputs)
+├── utils/                     # Math & Helper Functions
+│   ├── check_angles.m         # Angular interval checking (essential for cones)
+│   ├── plot_cone.m            # Visualization helper for transparent cones
+│   ├── get_tangents.m         # (Helper) Geometry calculations
+│   └── check_collision.m      # (Helper) Verification logic
 │
-└── scenarios/                 # Test configurations
-    ├── scenario_static.m      # 1 robot vs static obstacle (for prof meeting)
-    └── scenario_hallway.m     # Head-on 2-robot test (HRVO demo)
+└── output/                    # Simulation Artifacts
+    └── *.mp4                  # Generated video recordings of runs
