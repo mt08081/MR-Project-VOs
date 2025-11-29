@@ -2,6 +2,7 @@ MR-Project-VOs/
 │
 ├── main_simulation.m          # ENTRY POINT — run this to see the demo
 ├── README.md                  # Setup + team instructions
+├── .gitignore                 # I don't think ye mene sahi kiya hai
 │
 ├── classes/                   # Physical object abstractions
 │   ├── Robot.m                # Robot state + unicycle kinematics
@@ -18,6 +19,9 @@ MR-Project-VOs/
 │   ├── check_collision.m      # Detect unsafe velocities
 │   └── plot_cone.m            # Draw forbidden velocity regions
 │   └── check_angles.m
+│
+├── output/     
+│   └── *.mp4                  # (Can add folders here to separate VO, RVO and HRVO outputs)
 │
 └── scenarios/                 # Test configurations
     ├── scenario_static.m      # 1 robot vs static obstacle (for prof meeting)
