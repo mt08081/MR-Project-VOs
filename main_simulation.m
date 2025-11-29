@@ -16,7 +16,7 @@ MAX_BLOCKED_DURATION = 5.0;
 
 % --- SCENARIO SELECTION ---
 % 1=Random, 2=U-Trap, 3=Hallway, 4=Somewhat Busy, 5=Very Busy
-CHOICE = 4; 
+CHOICE = 5; 
 
 switch CHOICE
     case 1
@@ -44,10 +44,24 @@ if SAVE_VIDEO
 end
 
 % --- VISUALIZATION SETUP ---
-fig = figure('Name', 'VO Simulation', 'Color', 'black', 'Position', [50 50 900 800]);
-ax = axes('Position', [0.1 0.1 0.6 0.8]); 
+% Calculate aspect ratio of the map
+map_width = map_bounds(2) - map_bounds(1);
+map_height = map_bounds(4) - map_bounds(3);
+aspect_ratio = map_width / map_height;
+
+% Define screen height you want (e.g., 800 pixels)
+fig_height = 800;
+fig_width = fig_height * aspect_ratio;
+
+% Create figure with tight fit
+fig = figure('Name', 'VO Simulation', 'Color', 'black', ...
+    'Position', [100 100 fig_width fig_height]); % Adjust width to match map
+
+ax = axes('Position', [0.05 0.05 0.9 0.9]); % Maximize plot area (removing gray borders)
 axis equal; grid on; hold on;
 axis(map_bounds); 
+
+% Style the plot
 xlabel('X (m)'); ylabel('Y (m)');
 set(ax, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'GridColor', 'w', 'GridAlpha', 0.3);
 
@@ -68,7 +82,8 @@ else
 end
 lgd.AutoUpdate = 'off'; 
 
-h_hud = text(map_bounds(1)+1, map_bounds(4)-2, '', ...
+% Update HUD Text Position (moved +1 in X and -1 in Y for safety)
+h_hud = text(map_bounds(1) + map_width*0.05, map_bounds(4) - map_height*0.05, '', ...
     'BackgroundColor', 'b', 'Color', 'w', 'EdgeColor', 'k', 'FontName', 'Consolas');
 
 % --- MAIN LOOP ---
