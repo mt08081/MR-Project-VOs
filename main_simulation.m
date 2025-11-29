@@ -1,92 +1,73 @@
 % main_simulation.m
-% Phase 1.9: Modularized VO Simulation
+% MR-Project-VOs: Modular Simulation Framework
+% Supports: VO (Phase 1), RVO (Phase 2), HRVO (Phase 3)
 % ---------------------------------------------------------
 clc; clear; close all;
-addpath('classes'); addpath('algorithms'); addpath('utils');
-addpath('scenarios/VOs'); % Make sure this path exists!
 
-% --- CONFIGURATION ---
+% 1. SETUP PATHS
+addpath('classes'); 
+addpath('algorithms'); 
+addpath('utils');
+addpath('scenarios/VOs'); 
+
+% ---------------------------------------------------------
+% 2. CONFIGURATION
+% ---------------------------------------------------------
 dt = 0.1; 
-T_max = 50; 
+T_max = 50.0; 
 SAVE_VIDEO = true;
 
-% Auto-stop logic
-blocked_start_sim_time = NaN; 
-MAX_BLOCKED_DURATION = 5.0;   
+% Algorithm Selector
+% 1 = Velocity Obstacles (VO)
+% 2 = Reciprocal VO (RVO)
+% 3 = Hybrid RVO (HRVO)
+ALGORITHM = 1; 
 
-% --- SCENARIO SELECTION ---
-% 1=Random, 2=U-Trap, 3=Hallway, 4=Somewhat Busy, 5=Very Busy
-CHOICE = 5; 
+% Scenario Selector
+% 1 = Random Blocks
+% 2 = U-Shape Trap
+% 3 = Hallway (Head-on)
+% 4 = Somewhat Busy Plaza
+% 5 = Very Busy Plaza
+SCENARIO_ID = 1; 
 
-switch CHOICE
-    case 1
-        [robot, robot2, obstacles, map_bounds, scn_name] = basic();
-    case 2
-        [robot, robot2, obstacles, map_bounds, scn_name] = u_trap();
-    case 3
-        [robot, robot2, obstacles, map_bounds, scn_name] = setup_hallway();
-    case 4
-        [robot, robot2, obstacles, map_bounds, scn_name] = somewhat_busy();
-    case 5
-        [robot, robot2, obstacles, map_bounds, scn_name] = very_busy();
-    otherwise
-        error('Invalid Scenario Choice');
+% Safety & Deadlock Parameters
+MAX_BLOCKED_DURATION = 5.0; 
+blocked_start_sim_time = NaN;
+
+% ---------------------------------------------------------
+% 3. LOAD SCENARIO
+% ---------------------------------------------------------
+robot2 = []; % Default to empty
+switch SCENARIO_ID
+    case 1, [robot, robot2, obstacles, map_bounds, scn_name] = basic();
+    case 2, [robot, robot2, obstacles, map_bounds, scn_name] = u_trap();
+    case 3, [robot, robot2, obstacles, map_bounds, scn_name] = setup_hallway();
+    case 4, [robot, robot2, obstacles, map_bounds, scn_name] = somewhat_busy();
+    case 5, [robot, robot2, obstacles, map_bounds, scn_name] = very_busy();
+    otherwise, error('Invalid Scenario Choice');
 end
 
-VIDEO_NAME = sprintf('output/VO_%s.mp4', scn_name);
-fprintf('Running Scenario: %s\nSaving to: %s\n', scn_name, VIDEO_NAME);
+algo_name = get_algo_name(ALGORITHM);
+VIDEO_NAME = sprintf('output/%s_%s.mp4', algo_name, scn_name);
+fprintf('>> Loaded Scenario: %s\n', scn_name);
+fprintf('>> Using Algorithm: %s\n', algo_name);
+fprintf('>> Saving Video to: %s\n', VIDEO_NAME);
 
-% --- VIDEO WRITER ---
+% ---------------------------------------------------------
+% 4. INITIALIZE VISUALIZATION
+% ---------------------------------------------------------
+[fig, ax, h_hud, lgd] = setup_visualization(map_bounds, robot, robot2, obstacles);
+
 if SAVE_VIDEO
     if ~exist('output', 'dir'), mkdir('output'); end
     v = VideoWriter(VIDEO_NAME, 'MPEG-4');
     v.FrameRate = 10; open(v);
 end
 
-% --- VISUALIZATION SETUP ---
-% Calculate aspect ratio of the map
-map_width = map_bounds(2) - map_bounds(1);
-map_height = map_bounds(4) - map_bounds(3);
-aspect_ratio = map_width / map_height;
-
-% Define screen height you want (e.g., 800 pixels)
-fig_height = 800;
-fig_width = fig_height * aspect_ratio;
-
-% Create figure with tight fit
-fig = figure('Name', 'VO Simulation', 'Color', 'black', ...
-    'Position', [100 100 fig_width fig_height]); % Adjust width to match map
-
-ax = axes('Position', [0.05 0.05 0.9 0.9]); % Maximize plot area (removing gray borders)
-axis equal; grid on; hold on;
-axis(map_bounds); 
-
-% Style the plot
-xlabel('X (m)'); ylabel('Y (m)');
-set(ax, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'GridColor', 'w', 'GridAlpha', 0.3);
-
-% Draw Static Elements
-plot(robot.goal(1), robot.goal(2), 'gx', 'MarkerSize', 10, 'LineWidth', 2);
-if ~isempty(robot2), plot(robot2.goal(1), robot2.goal(2), 'rx', 'MarkerSize', 10, 'LineWidth', 2); end
-
-% Legend
-h_rob_leg  = plot(NaN,NaN, 'bo', 'MarkerFaceColor', 'b', 'DisplayName', 'Robot 1');
-h_obs_leg  = plot(NaN,NaN, 'ro', 'MarkerFaceColor', 'r', 'DisplayName', 'Obstacle');
-h_inf_leg  = plot(NaN,NaN, 'r--', 'DisplayName', 'Safety Margin');
-h_cone_leg = patch(NaN, NaN, 'm', 'FaceAlpha', 0.2, 'EdgeColor', 'm', 'LineStyle', '--', 'DisplayName', 'VO Cone');
-if ~isempty(robot2)
-    h_rob2_leg = plot(NaN,NaN, 'ro', 'MarkerFaceColor', 'r', 'DisplayName', 'Robot 2');
-    lgd = legend([h_rob_leg, h_rob2_leg, h_obs_leg, h_inf_leg, h_cone_leg], 'Location', 'northeastoutside', 'Color', 'k', 'TextColor', 'w');
-else
-    lgd = legend([h_rob_leg, h_obs_leg, h_inf_leg, h_cone_leg], 'Location', 'northeastoutside', 'Color', 'k', 'TextColor', 'w');
-end
-lgd.AutoUpdate = 'off'; 
-
-% Update HUD Text Position (moved +1 in X and -1 in Y for safety)
-h_hud = text(map_bounds(1) + map_width*0.05, map_bounds(4) - map_height*0.05, '', ...
-    'BackgroundColor', 'b', 'Color', 'w', 'EdgeColor', 'k', 'FontName', 'Consolas');
-
-% --- MAIN LOOP ---
+% ---------------------------------------------------------
+% 5. MAIN SIMULATION LOOP
+% ---------------------------------------------------------
 h_dynamic = []; 
 collision_detected = false;
 
@@ -94,125 +75,185 @@ for t = 0:dt:T_max
     if ~isempty(h_dynamic), delete(h_dynamic); end
     h_dynamic = [];
     
-    % 1. MOVE DYNAMIC OBSTACLES
+    % --- A. UPDATE DYNAMIC OBSTACLES ---
+    % Move dumb agents based on their constant velocity
     for k = 1:length(obstacles)
         if norm(obstacles(k).vel) > 0
             obstacles(k).pos = obstacles(k).pos + obstacles(k).vel * dt;
         end
     end
 
-    % 2. ROBOT 1 PLAN & MOVE
+    % --- B. ROBOT 1: PERCEPTION & PLANNING ---
+    % 1. Perception: Scan for walls + dynamic agents + other robots
     obs_for_r1 = obstacles;
     if ~isempty(robot2)
-        % Treat Robot 2 as a physical obstacle
-        % FIX: Use robot2.vel instead of [0;0]
+        % Dynamic VO: See Robot 2 with its CURRENT Velocity
         obs_for_r1 = [obs_for_r1, Obstacle(robot2.pos, robot2.radius, robot2.vel)];
     end
-    [v_opt, cones] = plan_VO(robot, obs_for_r1);
-    robot = robot.move(v_opt, dt);
     
-    % 3. ROBOT 2 PLAN & MOVE
+    % 2. Planning: Call the selected Algorithm
+    [v_opt1, cones1] = run_planner(ALGORITHM, robot, obs_for_r1);
+    
+    % 3. Action: Move Robot 1
+    robot = robot.move(v_opt1, dt);
+    
+    % --- C. ROBOT 2: PERCEPTION & PLANNING (Optional) ---
+    v_opt2 = [0;0]; cones2 = [];
     if ~isempty(robot2)
-        % FIX: Use robot.vel instead of [0;0]
         obs_for_r2 = [obstacles, Obstacle(robot.pos, robot.radius, robot.vel)];
-        [v_opt2, ~] = plan_VO(robot2, obs_for_r2);
+        [v_opt2, cones2] = run_planner(ALGORITHM, robot2, obs_for_r2);
         robot2 = robot2.move(v_opt2, dt);
     end
     
-    % --- COLLISION CHECK ---
-    % Check Robot 1 vs All Obstacles
-    for k = 1:length(obstacles)
-        dist = norm(robot.pos - obstacles(k).pos);
-        if dist <= (robot.radius + obstacles(k).radius)
-            collision_detected = true;
-        end
-    end
-    % Check Robot 1 vs Robot 2
-    if ~isempty(robot2)
-        dist = norm(robot.pos - robot2.pos);
-        if dist <= (robot.radius + robot2.radius)
-            collision_detected = true;
-        end
+    % --- D. COLLISION CHECK ---
+    if check_collision(robot, obstacles, robot2)
+        collision_detected = true;
     end
     
-    % --- VISUALIZATION ---
-    h_cones = [];
-    if ~isempty(cones)
-        for i = 1:size(cones, 1)
-            p_h = plot_cone(robot.pos, cones(i,1), cones(i,2), 5.0, 'm');
-            h_cones = [h_cones; p_h];
-        end
-    end
+    % --- E. VISUALIZATION & HUD ---
+    h_dynamic = draw_scene(robot, robot2, obstacles, cones1, v_opt1, v_opt2);
     
-    % Draw Robot 1
-    h_rob_body = viscircles(robot.pos', robot.radius, 'Color', 'b');
-    h_head = quiver(robot.pos(1), robot.pos(2), cos(robot.theta), sin(robot.theta), 0.5, 'Color', 'g', 'LineWidth', 1);
-    h_vel = quiver(robot.pos(1), robot.pos(2), v_opt(1), v_opt(2), 0, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 2);
-    
-    % Draw Obstacles (Redrawn for motion)
-    h_obs_all = [];
-    for k = 1:length(obstacles)
-        h_o = viscircles(obstacles(k).pos', obstacles(k).radius, 'Color', 'r');
-        h_s = viscircles(obstacles(k).pos', obstacles(k).radius + robot.radius, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 0.5);
-        h_obs_all = [h_obs_all; h_o; h_s];
-    end
-    
-    if ~isempty(robot2)
-        h_r2_body = viscircles(robot2.pos', robot2.radius, 'Color', 'r');
-        h_r2_head = quiver(robot2.pos(1), robot2.pos(2), cos(robot2.theta), sin(robot2.theta), 0.5, 'Color', 'r', 'LineWidth', 1);
-        h_dynamic = [h_cones; h_rob_body; h_head; h_vel; h_r2_body; h_r2_head; h_obs_all];
-    else
-        h_dynamic = [h_cones; h_rob_body; h_head; h_vel; h_obs_all];
-    end
-    
-    % HUD
+    % Check Status
     dist_to_goal = norm(robot.goal - robot.pos);
-    v_mag = norm(v_opt);
-    
     if collision_detected
-        state = 'CRASHED!';
-        hud_color = 'r';
+        status = 'CRASHED!'; hud_color = 'r';
+    elseif dist_to_goal < 0.5
+        status = 'ARRIVED'; hud_color = 'g';
+    elseif norm(v_opt1) < 0.01
+        status = 'WAITING'; hud_color = [0.9 0.6 0]; % Orange
     else
-        state = ij_status(dist_to_goal, v_mag);
-        hud_color = 'b';
+        status = 'NAVIGATING'; hud_color = 'b';
     end
     
-    h_hud.String = sprintf([...
-        'Time:        %.2f s\n' ...
-        'Dist to Goal: %.2f m\n' ...
-        'Cmd Speed:    %.2f m/s\n' ...
-        'Status:       %s'], ...
-        t, dist_to_goal, v_mag, string(state));
+    h_hud.String = sprintf('Alg: %s | T: %.2fs\nGoal Dist: %.2fm\nStatus: %s', ...
+        algo_name, t, dist_to_goal, status);
     h_hud.BackgroundColor = hud_color;
     
     drawnow limitrate;
-    if SAVE_VIDEO, writeVideo(v, getframe(gcf)); else, pause(0.01); end
+    if SAVE_VIDEO, writeVideo(v, getframe(gcf)); end
     
+    % --- F. TERMINATION LOGIC ---
     if collision_detected
-        disp('COLLISION DETECTED! Stopping Simulation.');
-        break;
+        disp('!! COLLISION DETECTED !!'); break;
     end
-    
-    if strcmp(state, 'WAITING / BLOCKED')
+    if dist_to_goal < 0.5
+        disp('>> SUCCESS: Goal Reached!'); break;
+    end
+    % Deadlock
+    if strcmp(status, 'WAITING')
         if isnan(blocked_start_sim_time), blocked_start_sim_time = t; end
         if (t - blocked_start_sim_time) > MAX_BLOCKED_DURATION
-            disp('DEADLOCK DETECTED. Stopping.'); break;
+            disp('!! DEADLOCK DETECTED !!'); break;
         end
     else
         blocked_start_sim_time = NaN;
     end
-    
-    if dist_to_goal < 0.5
-        disp('Robot 1 Goal Reached!');
-        break;
+end
+
+if SAVE_VIDEO, close(v); end
+
+
+% ---------------------------------------------------------
+% 6. HELPER FUNCTIONS
+% ---------------------------------------------------------
+
+function [v_opt, cones] = run_planner(algo_id, robot, obstacles)
+    switch algo_id
+        case 1, [v_opt, cones] = plan_VO(robot, obstacles);
+        case 2, error('RVO not implemented yet');
+        case 3, error('HRVO not implemented yet');
+        otherwise, error('Unknown Algorithm ID');
     end
 end
 
-if SAVE_VIDEO, close(v); disp(['Video saved to: ' VIDEO_NAME]); end
-
-function s = ij_status(d, v)
-    if d < 0.5, s = 'ARRIVED';
-    elseif v < 0.01, s = 'WAITING / BLOCKED';
-    else, s = 'NAVIGATING';
+function is_colliding = check_collision(r1, obstacles, r2)
+    is_colliding = false;
+    for k = 1:length(obstacles)
+        if norm(r1.pos - obstacles(k).pos) <= (r1.radius + obstacles(k).radius)
+            is_colliding = true; return;
+        end
     end
+    if ~isempty(r2)
+        if norm(r1.pos - r2.pos) <= (r1.radius + r2.radius)
+            is_colliding = true; return;
+        end
+    end
+end
+
+function name = get_algo_name(id)
+    if id==1, name='VO'; elseif id==2, name='RVO'; elseif id==3, name='HRVO'; else, name='UNK'; end
+end
+
+% --- VISUALIZATION HELPERS (FIXED LEGEND) ---
+
+function h_handles = draw_scene(r1, r2, obstacles, cones1, v1, v2)
+    h_handles = [];
+    
+    % Draw Cones (HandleVisibility off prevents legend clutter)
+    if ~isempty(cones1)
+        for i = 1:size(cones1, 1)
+            p = plot_cone(r1.pos, cones1(i,1), cones1(i,2), 5.0, 'm');
+            set(p, 'HandleVisibility', 'off'); % <--- FIX
+            h_handles = [h_handles; p];
+        end
+    end
+    
+    % Draw Robot 1
+    [h_b, h_h, h_v] = draw_robot(r1, v1);
+    h_handles = [h_handles; h_b; h_h; h_v];
+    
+    % Draw Robot 2
+    if ~isempty(r2)
+        [h_b2, h_h2, h_v2] = draw_robot(r2, v2);
+        h_handles = [h_handles; h_b2; h_h2; h_v2];
+    end
+    
+    % Draw Obstacles
+    for k = 1:length(obstacles)
+        % Create circles with invisible handles
+        h_o = viscircles(obstacles(k).pos', obstacles(k).radius, 'Color', 'r');
+        set(findobj(h_o), 'HandleVisibility', 'off'); % <--- FIX for viscircles group
+        
+        h_s = viscircles(obstacles(k).pos', obstacles(k).radius + r1.radius, 'Color', 'r', 'LineStyle', '--', 'LineWidth', 0.5);
+        set(findobj(h_s), 'HandleVisibility', 'off'); % <--- FIX
+        
+        h_handles = [h_handles; h_o; h_s];
+    end
+end
+
+function [h_body, h_head, h_vel] = draw_robot(r, v_cmd)
+    h_body = viscircles(r.pos', r.radius, 'Color', r.color);
+    set(findobj(h_body), 'HandleVisibility', 'off'); % <--- FIX
+    
+    h_head = quiver(r.pos(1), r.pos(2), cos(r.theta), sin(r.theta), 0.5, 'Color', 'g', 'LineWidth', 1, 'HandleVisibility', 'off');
+    h_vel  = quiver(r.pos(1), r.pos(2), v_cmd(1), v_cmd(2), 0, 'Color', r.color, 'LineStyle', '--', 'LineWidth', 2, 'HandleVisibility', 'off');
+end
+
+function [fig, ax, h_hud, lgd] = setup_visualization(bounds, r1, r2, obs)
+    w = bounds(2)-bounds(1); h = bounds(4)-bounds(3);
+    fig = figure('Name', 'VO Simulation', 'Color', 'black', 'Position', [50 50 800*(w/h) 800]);
+    ax = axes('Position', [0.05 0.05 0.9 0.9], 'Color', 'k', 'XColor','w', 'YColor','w');
+    axis equal; grid on; hold on; axis(bounds);
+    
+    % Draw Static Goals (Keep these in legend/plot logic if desired, or exclude)
+    plot(r1.goal(1), r1.goal(2), 'gx', 'MarkerSize', 10, 'LineWidth', 2, 'HandleVisibility', 'off'); 
+    if ~isempty(r2), plot(r2.goal(1), r2.goal(2), 'rx', 'MarkerSize', 10, 'LineWidth', 2, 'HandleVisibility', 'off'); end
+    
+    % --- LEGEND SETUP (The "Dummy" Trick) ---
+    % We draw invisible points just to create perfect legend entries
+    h_rob = plot(NaN,NaN,'bo','MarkerFaceColor','b','DisplayName','Robot 1');
+    h_obs = plot(NaN,NaN,'ro','MarkerFaceColor','r','DisplayName','Obstacle');
+    h_inf = plot(NaN,NaN,'r--','DisplayName','Safety Margin');
+    h_con = patch(NaN,NaN,'m','FaceAlpha',0.2,'EdgeColor','m','LineStyle','--','DisplayName','VO Cone');
+    
+    if ~isempty(r2)
+        h_rob2 = plot(NaN,NaN,'ro','MarkerFaceColor','r','DisplayName','Robot 2');
+        lgd = legend([h_rob, h_rob2, h_obs, h_inf, h_con], 'Location', 'northeastoutside', 'Color', 'k', 'TextColor', 'w');
+    else
+        lgd = legend([h_rob, h_obs, h_inf, h_con], 'Location', 'northeastoutside', 'Color', 'k', 'TextColor', 'w');
+    end
+    
+    % Setup HUD
+    h_hud = text(bounds(1)+w*0.05, bounds(4)-h*0.05, 'Init...', ...
+        'BackgroundColor', 'b', 'Color', 'w', 'EdgeColor', 'k', 'FontName', 'Consolas');
 end
