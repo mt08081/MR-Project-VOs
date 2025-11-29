@@ -15,7 +15,7 @@ MAX_BLOCKED_DURATION = 5.0;
 
 % --- SCENARIO SELECTION ---
 % 1=Random, 2=U-Trap, 3=Hallway, 4=Busy Plaza, 5=Very Busy Plaza
-CHOICE =3; 
+CHOICE =32; 
 
 if CHOICE == 1, scenario_name = 'Random_Blocks';
 elseif CHOICE == 2, scenario_name = 'U_Shape_Trap';
