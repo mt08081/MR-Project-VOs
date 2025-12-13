@@ -1,7 +1,9 @@
 MR-Project-VOs/
 │
 ├── main_simulation.m          # ENTRY POINT — Controls the loop, switching, and visualization
-├── README.md                  # Project documentation
+├── README.md                  # Project documentation (updated with HRVO implementation details)
+├── DEVELOPMENT_PLAN.md        # Technical roadmap for Phase 4-6 (Multi-Agent, Scenarios, Maze)
+├── repo_structure.txt         # This file - repository structure overview
 ├── .gitignore                 # Ignores generated videos (*.mp4) and temp files
 │
 ├── classes/                   # Physical object definitions
@@ -10,12 +12,14 @@ MR-Project-VOs/
 │   └── Simulator.m            # (Legacy/Future use for encapsulation)
 │
 ├── algorithms/                # The "Brains" - Path Planning Logic
-│   ├── plan_VO.m              # PHASE 1 — Dynamic Velocity Obstacles (Implemented)
-│   ├── plan_RVO.m             # PHASE 2 — Reciprocal VOs (Placeholder/Next Step)
-│   └── plan_HRVO.m            # PHASE 3 — Hybrid RVOs (Placeholder/Future)
+│   ├── plan_VO.m              # PHASE 1 — Dynamic Velocity Obstacles (✅ Complete)
+│   ├── plan_RVO_new.m         # PHASE 2 — Reciprocal VOs with static/dynamic handling (✅ Complete)
+│   └── plan_HRVO_new.m        # PHASE 3 — Hybrid RVOs with true geometric apex (✅ Complete)
 │
 ├── scenarios/                 # Modular Scenario Definitions
-│   └── VOs/                   # Phase 1 & 1.5 Scenarios
+│   ├── scenario_hallway.m     # Hallway navigation scenario
+│   ├── scenario_static.m      # Static obstacle scenario
+│   └── VOs/                   # Phase 1-3 Scenarios
 │       ├── basic.m            # 1. Random Static Blocks
 │       ├── u_trap.m           # 2. Local Minimum Stress Test
 │       ├── setup_hallway.m    # 3. Two Robots Head-On (RVO Motivation)
@@ -24,9 +28,10 @@ MR-Project-VOs/
 │
 ├── utils/                     # Math & Helper Functions
 │   ├── check_angles.m         # Angular interval checking (essential for cones)
-│   ├── plot_cone.m            # Visualization helper for transparent cones
-│   ├── get_tangents.m         # (Helper) Geometry calculations
-│   └── check_collision.m      # (Helper) Verification logic
+│   ├── check_collision.m      # Collision verification logic
+│   ├── get_tangents.m         # Geometry calculations for tangent lines
+│   ├── intersect_rays.m       # Ray intersection for HRVO hybrid apex computation (NEW)
+│   └── plot_cone.m            # Visualization helper for transparent cones
 │
 └── output/                    # Simulation Artifacts
     └── *.mp4                  # Generated video recordings of runs

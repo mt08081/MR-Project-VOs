@@ -2,7 +2,7 @@
 # Mobile Robotics Project: Reactive Navigation via Hybrid Reciprocal Velocity Obstacles (HRVO)
 
 **Course:** Mobile Robotics (MR)  
-**Status:** Phase 1 (Velocity Obstacles) Complete | Moving to Phase 2 (RVO) & 3 (HRVO)  
+**Status:** Phase 1-3 Complete (VO/RVO/HRVO) | Phase 4 (Multi-Agent & Global Planning) In Progress  
 **Language:** MATLAB (Simulation)
 
 ## 📌 Project Overview
@@ -17,9 +17,11 @@ Our objective is to implement and simulate **Velocity Obstacles (VO)** and its a
 | :--- | :--- | :--- |
 | **Framework** | ✅ Complete | Modular simulation engine (`main_simulation.m`) with unicycle kinematics. |
 | **Phase 1: VO** | ✅ Complete | Dynamic Velocity Obstacles with multi-speed sampling in `plan_VO.m`. |
-| **Phase 2: RVO** | ✅ Complete | Reciprocal Velocity Obstacles solving oscillation problem in `plan_RVO.m`. |
-| **Phase 3: HRVO** | ✅ Complete | Hybrid RVO with right-hand passing preference in `plan_HRVO.m`. |
-| **Phase 4: Integration** | ⏳ Planned | Integration of VO/HRVO as a local controller alongside a Global Planner (e.g., A* or RRT). |
+| **Phase 2: RVO** | ✅ Complete | Reciprocal Velocity Obstacles solving oscillation problem in `plan_RVO_new.m`. |
+| **Phase 3: HRVO** | ✅ Complete | Hybrid RVO with true geometric apex intersection in `plan_HRVO_new.m`. |
+| **Phase 4: Multi-Agent** | ⏳ Planned | Full N-robot system with parallel planning and continuous simulation. |
+| **Phase 5: Scenarios** | ⏳ Planned | Extended scenarios including interactive robot placement mode. |
+| **Phase 6: Maze Demo** | ⏳ Planned | Global planner integration (A*/RRT) with random maze generation. |
 
 ## 📂 Repository Structure
 The repository is organized to separate the physical simulation from the algorithmic "brain".
@@ -35,9 +37,9 @@ MR-Project-VOs/
 │   └── Obstacle.m             # Standardized object for Static Walls and Dynamic Agents
 │
 ├── algorithms/                # The "Brains" - Path Planning Logic
-│   ├── plan_VO.m              # PHASE 1: Dynamic Velocity Obstacles (Implemented)
-│   ├── plan_RVO.m             # PHASE 2: Reciprocal VOs (Implemented)
-│   └── plan_HRVO.m            # PHASE 3: Hybrid RVOs (Implemented)
+│   ├── plan_VO.m              # PHASE 1: Dynamic Velocity Obstacles
+│   ├── plan_RVO_new.m         # PHASE 2: Reciprocal VOs (shared avoidance)
+│   └── plan_HRVO_new.m        # PHASE 3: Hybrid RVOs (asymmetric apex)
 │
 ├── scenarios/                 # Modular Scenario Definitions
 │   └── VOs/                   
@@ -53,6 +55,7 @@ MR-Project-VOs/
     ├── check_angles.m         # Angular interval checking for collision cones
     ├── check_collision.m      # Collision verification logic
     ├── get_tangents.m         # Tangent line calculations
+    ├── intersect_rays.m       # Ray intersection for HRVO apex computation
     └── plot_cone.m            # Visualization helper for transparent cones
 ````
 
@@ -140,7 +143,49 @@ RVO can lead to "Reciprocal Dances" where agents are unsure whether to pass left
 
 The passing side is determined by: $\text{cross}(p_{rel}, v_{rel}) \gtrless 0$
 
-This implicitly encodes a **right-hand traffic** convention, ensuring consistent passing behavior.
+**Geometric Implementation (Snape et al., 2011 - Section III):**
+
+The key insight is that the two legs originate from **different apexes**:
+- VO leg originates from $v_B$ (obstacle velocity)
+- RVO leg originates from $\frac{v_A + v_B}{2}$ (reciprocal apex)
+
+These legs intersect at a **hybrid apex** $p_{\text{inter}}$, computed via ray intersection:
+
+$$p_{\text{inter}} = \text{intersect}(\text{origin}_{\text{VO}}, \theta_{\text{VO}}, \text{origin}_{\text{RVO}}, \theta_{\text{RVO}})$$
+
+Our implementation uses Cramer's rule to solve the 2D line intersection:
+```matlab
+% Solve: origin1 + t1*dir1 = origin2 + t2*dir2
+det_A = dir1(1)*dir2(2) - dir1(2)*dir2(1);
+t1 = (d(1)*dir2(2) - d(2)*dir2(1)) / det_A;
+p_inter = origin1 + t1 * dir1;
+```
+
+This creates the correct asymmetric forbidden region that implicitly encodes a **right-hand traffic** convention, ensuring consistent passing behavior without reciprocal dance oscillations.
+
+**Static vs Dynamic Handling:**
+- **Dynamic obstacles:** Full HRVO with hybrid apex intersection
+- **Static obstacles:** Fall back to standard VO (apex at $v_B = [0,0]$)
+
+## 🔬 Implementation Details
+
+### Algorithm Comparison
+
+| Property | VO | RVO | HRVO |
+|:---------|:---|:----|:-----|
+| Apex Location | $v_B$ | $\frac{v_A + v_B}{2}$ | Intersection of VO/RVO legs |
+| Cone Geometry | Symmetric | Symmetric | **Asymmetric** |
+| Oscillation | ❌ Causes jitter | ✅ Eliminated | ✅ Eliminated |
+| Reciprocal Dance | N/A | ❌ Can occur | ✅ Eliminated |
+| Static Obstacles | Works | Falls back to VO | Falls back to VO |
+
+### Key Implementation Choices
+
+1. **Dynamic Threshold:** Obstacles with $\|v_{obs}\| < 0.05$ m/s are treated as static
+2. **Sensor Range:** 6.0m finite time horizon for computational efficiency
+3. **Safety Buffer:** 0.25m added to Minkowski sum radius for uncertainty
+4. **Velocity Sampling:** Multi-resolution search with 5 speed fractions and 37 angles
+5. **Emergency Escape:** Immediate reverse if already in collision configuration
 
 ## 🧪 Simulation Scenarios
 
