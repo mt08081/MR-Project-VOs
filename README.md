@@ -30,33 +30,40 @@ The repository is organized to separate the physical simulation from the algorit
 MR-Project-VOs/
 │
 ├── main_simulation.m          # ENTRY POINT — Controls the loop, switching, and visualization
-├── README.md                  # Project documentation
+├── README.md                  # Project documentation (updated with HRVO implementation details)
+├── DEVELOPMENT_PLAN.md        # Technical roadmap for Phase 4-6 (Multi-Agent, Scenarios, Maze)
+├── repo_structure.txt         # This file - repository structure overview
+├── .gitignore                 # Ignores generated videos (*.mp4) and temp files
 │
 ├── classes/                   # Physical object definitions
-│   ├── Robot.m                # Unicycle Kinematics, P-Controller, State (pos, vel, theta)
-│   └── Obstacle.m             # Standardized object for Static Walls and Dynamic Agents
+│   ├── Robot.m                # Robot state (pos, vel) + Unicycle Kinematics + Controller
+│   ├── Obstacle.m             # Standardized object for Static Walls, Dynamic Blocks, and Agents
+│   └── Simulator.m            # (Legacy/Future use for encapsulation)
 │
 ├── algorithms/                # The "Brains" - Path Planning Logic
-│   ├── plan_VO.m              # PHASE 1: Dynamic Velocity Obstacles
-│   ├── plan_RVO_new.m         # PHASE 2: Reciprocal VOs (shared avoidance)
-│   └── plan_HRVO_new.m        # PHASE 3: Hybrid RVOs (asymmetric apex)
+│   ├── plan_VO.m              # PHASE 1 — Dynamic Velocity Obstacles (✅ Complete)
+│   ├── plan_RVO_new.m         # PHASE 2 — Reciprocal VOs with static/dynamic handling (✅ Complete)
+│   └── plan_HRVO_new.m        # PHASE 3 — Hybrid RVOs with true geometric apex (✅ Complete)
 │
 ├── scenarios/                 # Modular Scenario Definitions
-│   └── VOs/                   
-│       ├── basic.m            # 1. Random Static Blocks (VO Baseline)
+│   ├── scenario_hallway.m     # Hallway navigation scenario
+│   ├── scenario_static.m      # Static obstacle scenario
+│   └── VOs/                   # Phase 1-3 Scenarios
+│       ├── basic.m            # 1. Random Static Blocks
 │       ├── u_trap.m           # 2. Local Minimum Stress Test
-│       ├── setup_hallway.m    # 3. Head-On Collision (RVO Motivation)
-│       ├── somewhat_busy.m    # 4. Robot vs Dynamic Obstacles
-│       └── very_busy.m        # 5. The Plaza (Complex Multi-Agent Chaos)
+│       ├── setup_hallway.m    # 3. Two Robots Head-On (RVO Motivation)
+│       ├── somewhat_busy.m    # 4. Robot vs Moving Obstacles
+│       └── very_busy.m        # 5. The Plaza (Complex Dynamic Environment)
 │
-├── output/                    # Video recordings of simulations
+├── utils/                     # Math & Helper Functions
+│   ├── check_angles.m         # Angular interval checking (essential for cones)
+│   ├── check_collision.m      # Collision verification logic
+│   ├── get_tangents.m         # Geometry calculations for tangent lines
+│   ├── intersect_rays.m       # Ray intersection for HRVO hybrid apex computation (NEW)
+│   └── plot_cone.m            # Visualization helper for transparent cones
 │
-└── utils/                     # Math & Helper Functions
-    ├── check_angles.m         # Angular interval checking for collision cones
-    ├── check_collision.m      # Collision verification logic
-    ├── get_tangents.m         # Tangent line calculations
-    ├── intersect_rays.m       # Ray intersection for HRVO apex computation
-    └── plot_cone.m            # Visualization helper for transparent cones
+└── output/                    # Simulation Artifacts
+    └── *.mp4                  # Generated video recordings of runs
 ````
 
 ## 🛠️ Usage & Installation
