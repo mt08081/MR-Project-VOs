@@ -95,6 +95,11 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
             % ---------------------------------------------------------
             % DYNAMIC: Build HRVO (hybrid of VO and RVO)
             % ---------------------------------------------------------
+            % HRVO is defined as intersection of two cones (Snape et al. 2011):
+            %   - One leg from VO (apex at v_B)
+            %   - One leg from RVO (apex at (v_A + v_B)/2)
+            % The hybrid apex is where these two legs intersect.
+            
             vo_apex = obs.vel;
             rvo_apex = (robot.vel + obs.vel) / 2;
             
@@ -105,12 +110,43 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
             % cross > 0: obstacle to left, pass on right
             pass_right = (cross_val >= 0);
             
-            % HRVO apex lies between VO and RVO apex
-            % For simplicity, use RVO apex (common approximation)
-            hrvo_apex = rvo_apex;
+            % ---------------------------------------------------------
+            % Construct TRUE HRVO by intersecting legs from VO and RVO
+            % ---------------------------------------------------------
+            if pass_right
+                % HRVO = Right leg of VO + Left leg of RVO
+                % Right leg from VO (origin at vo_apex = v_B)
+                angle_vo_leg = theta_right;
+                origin_vo_leg = vo_apex;
+                
+                % Left leg from RVO (origin at rvo_apex)
+                angle_rvo_leg = theta_left;
+                origin_rvo_leg = rvo_apex;
+                
+                % The hybrid cone angles (relative to new apex)
+                hrvo_theta_right = theta_right;  % From VO
+                hrvo_theta_left = theta_left;    % From RVO
+            else
+                % HRVO = Left leg of VO + Right leg of RVO
+                % Left leg from VO (origin at vo_apex = v_B)
+                angle_vo_leg = theta_left;
+                origin_vo_leg = vo_apex;
+                
+                % Right leg from RVO (origin at rvo_apex)
+                angle_rvo_leg = theta_right;
+                origin_rvo_leg = rvo_apex;
+                
+                % The hybrid cone angles
+                hrvo_theta_right = theta_right;  % From RVO
+                hrvo_theta_left = theta_left;    % From VO
+            end
+            
+            % Calculate the TRUE hybrid apex (intersection of the two legs)
+            hrvo_apex = intersect_rays(origin_vo_leg, angle_vo_leg, ...
+                                       origin_rvo_leg, angle_rvo_leg);
             
             cone_constraints = [cone_constraints; ...
-                theta_right, theta_left, hrvo_apex(1), hrvo_apex(2), 1, pass_right];
+                hrvo_theta_right, hrvo_theta_left, hrvo_apex(1), hrvo_apex(2), 1, pass_right];
         else
             % ---------------------------------------------------------
             % STATIC: Use standard VO (apex at v_obs = [0,0])

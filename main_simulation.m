@@ -29,7 +29,7 @@ ALGORITHM = 3;
 % 3 = Hallway (Head-on)
 % 4 = Somewhat Busy Plaza
 % 5 = Very Busy Plaza
-SCENARIO_ID = 1; 
+SCENARIO_ID = 5; 
 
 % Safety & Deadlock Parameters
 MAX_BLOCKED_DURATION = 5.0; 
