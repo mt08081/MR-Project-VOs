@@ -21,7 +21,7 @@ SAVE_VIDEO = true;
 % 1 = Velocity Obstacles (VO)
 % 2 = Reciprocal VO (RVO)
 % 3 = Hybrid RVO (HRVO)
-ALGORITHM = 1; 
+ALGORITHM = 3; 
 
 % Scenario Selector
 % 1 = Random Blocks
@@ -29,7 +29,7 @@ ALGORITHM = 1;
 % 3 = Hallway (Head-on)
 % 4 = Somewhat Busy Plaza
 % 5 = Very Busy Plaza
-SCENARIO_ID = 1; 
+SCENARIO_ID = 5; 
 
 % Safety & Deadlock Parameters
 MAX_BLOCKED_DURATION = 5.0; 
@@ -160,8 +160,8 @@ if SAVE_VIDEO, close(v); end
 function [v_opt, cones] = run_planner(algo_id, robot, obstacles)
     switch algo_id
         case 1, [v_opt, cones] = plan_VO(robot, obstacles);
-        case 2, error('RVO not implemented yet');
-        case 3, error('HRVO not implemented yet');
+        case 2, [v_opt, cones] = plan_RVO(robot, obstacles);
+        case 3, [v_opt, cones] = plan_HRVO(robot, obstacles);
         otherwise, error('Unknown Algorithm ID');
     end
 end

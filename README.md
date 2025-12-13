@@ -16,10 +16,10 @@ Our objective is to implement and simulate **Velocity Obstacles (VO)** and its a
 | Feature | Status | Description |
 | :--- | :--- | :--- |
 | **Framework** | ✅ Complete | Modular simulation engine (`main_simulation.m`) with unicycle kinematics. |
-| **Phase 1: VO** | ✅ Complete | Baseline Dynamic Velocity Obstacles implemented in `plan_VO.m`. |
-| **Phase 2: RVO** | 🚧 Planned | Reciprocal Velocity Obstacles to solve the oscillation ("jitter") problem. |
-| **Phase 3: HRVO** | 🚧 Planned | Hybrid RVO to solve the "Reciprocal Dance" (passing side confusion). |
-| **Phase 4: Integration** | ⏳ In Progress | Integration of VO/HRVO as a local controller alongside a Global Planner (e.g., A* or RRT). |
+| **Phase 1: VO** | ✅ Complete | Dynamic Velocity Obstacles with multi-speed sampling in `plan_VO.m`. |
+| **Phase 2: RVO** | ✅ Complete | Reciprocal Velocity Obstacles solving oscillation problem in `plan_RVO.m`. |
+| **Phase 3: HRVO** | ✅ Complete | Hybrid RVO with right-hand passing preference in `plan_HRVO.m`. |
+| **Phase 4: Integration** | ⏳ Planned | Integration of VO/HRVO as a local controller alongside a Global Planner (e.g., A* or RRT). |
 
 ## 📂 Repository Structure
 The repository is organized to separate the physical simulation from the algorithmic "brain".
@@ -36,8 +36,8 @@ MR-Project-VOs/
 │
 ├── algorithms/                # The "Brains" - Path Planning Logic
 │   ├── plan_VO.m              # PHASE 1: Dynamic Velocity Obstacles (Implemented)
-│   ├── plan_RVO.m             # PHASE 2: Reciprocal VOs (To Be Implemented)
-│   └── plan_HRVO.m            # PHASE 3: Hybrid RVOs (To Be Implemented)
+│   ├── plan_RVO.m             # PHASE 2: Reciprocal VOs (Implemented)
+│   └── plan_HRVO.m            # PHASE 3: Hybrid RVOs (Implemented)
 │
 ├── scenarios/                 # Modular Scenario Definitions
 │   └── VOs/                   
@@ -47,10 +47,13 @@ MR-Project-VOs/
 │       ├── somewhat_busy.m    # 4. Robot vs Dynamic Obstacles
 │       └── very_busy.m        # 5. The Plaza (Complex Multi-Agent Chaos)
 │
+├── output/                    # Video recordings of simulations
+│
 └── utils/                     # Math & Helper Functions
     ├── check_angles.m         # Angular interval checking for collision cones
-    ├── plot_cone.m            # Visualization helper for transparent cones
-    └── check_collision.m      # Collision verification logic
+    ├── check_collision.m      # Collision verification logic
+    ├── get_tangents.m         # Tangent line calculations
+    └── plot_cone.m            # Visualization helper for transparent cones
 ````
 
 ## 🛠️ Usage & Installation
