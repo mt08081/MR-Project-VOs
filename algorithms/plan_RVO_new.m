@@ -1,4 +1,4 @@
-function [v_opt, forbidden_intervals] = plan_RVO(robot, obstacles)
+function [v_opt, forbidden_intervals] = plan_RVO_new(robot, obstacles)
 % PLAN_RVO Reciprocal Velocity Obstacles for Multi-Agent Navigation
 %
 % Implementation based on:
@@ -25,7 +25,7 @@ function [v_opt, forbidden_intervals] = plan_RVO(robot, obstacles)
 % -----------------------------
 % RVO assumes BOTH agents are reactive and using RVO. For STATIC obstacles,
 % we MUST fall back to standard VO (apex at v_obs = [0,0]).
-% Otherwise, the robot will approach too close before reacting!
+% Otherwise, the robot will get too close before reacting!
 %
 % See also: plan_VO, plan_HRVO
 %
@@ -58,7 +58,7 @@ function [v_opt, forbidden_intervals] = plan_RVO(robot, obstacles)
     
     SENSOR_RANGE = 6.0; 
     BUFFER_RADII = 0.25;
-    DYNAMIC_THRESHOLD = 0.05; % Speed threshold to classify as "dynamic"
+    DYNAMIC_THRESHOLD = 0.05; % Velocity threshold to consider obstacle "dynamic"
     
     for i = 1:length(obstacles)
         obs = obstacles(i);
@@ -78,7 +78,7 @@ function [v_opt, forbidden_intervals] = plan_RVO(robot, obstacles)
         end
         
         % -----------------------------------------------------------------
-        % Collision Cone Geometry (same as VO, Fiorini 1998)
+        % Collision Cone Geometry (same as VO)
         % -----------------------------------------------------------------
         phi = atan2(p_rel(2), p_rel(1));
         alpha = asin(r_combined / dist);
@@ -86,12 +86,12 @@ function [v_opt, forbidden_intervals] = plan_RVO(robot, obstacles)
         theta_max = phi + alpha;
         
         % -----------------------------------------------------------------
-        % APEX SELECTION: VO for static, RVO for dynamic
+        % APEX SELECTION: VO vs RVO
         % -----------------------------------------------------------------
         is_dynamic = norm(obs.vel) > DYNAMIC_THRESHOLD;
         
         if is_dynamic
-            % DYNAMIC OBSTACLE (e.g., other robot): Use RVO
+            % DYNAMIC OBSTACLE (other robot): Use RVO
             % RVO apex = (v_robot + v_obs) / 2
             % This shares avoidance responsibility 50-50
             apex = (robot.vel + obs.vel) / 2;

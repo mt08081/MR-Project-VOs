@@ -29,7 +29,7 @@ ALGORITHM = 3;
 % 3 = Hallway (Head-on)
 % 4 = Somewhat Busy Plaza
 % 5 = Very Busy Plaza
-SCENARIO_ID = 5; 
+SCENARIO_ID = 1; 
 
 % Safety & Deadlock Parameters
 MAX_BLOCKED_DURATION = 5.0; 
@@ -160,8 +160,8 @@ if SAVE_VIDEO, close(v); end
 function [v_opt, cones] = run_planner(algo_id, robot, obstacles)
     switch algo_id
         case 1, [v_opt, cones] = plan_VO(robot, obstacles);
-        case 2, [v_opt, cones] = plan_RVO(robot, obstacles);
-        case 3, [v_opt, cones] = plan_HRVO(robot, obstacles);
+        case 2, [v_opt, cones] = plan_RVO_new(robot, obstacles);
+        case 3, [v_opt, cones] = plan_HRVO_new(robot, obstacles);
         otherwise, error('Unknown Algorithm ID');
     end
 end

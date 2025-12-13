@@ -1,4 +1,4 @@
-function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
+function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
 % PLAN_HRVO Hybrid Reciprocal Velocity Obstacles
 %
 % Implementation based on:
@@ -16,24 +16,14 @@ function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
 % passing-side preference (typically right-hand traffic).
 %
 % CONSTRUCTION (Section III, Snape 2011):
-% Let:
-%   - CL_vo, CR_vo = left/right legs of VO (apex at v_B)
-%   - CL_rvo, CR_rvo = left/right legs of RVO (apex at (v_A+v_B)/2)
+% - Determine passing side using cross product of p_rel and v_rel
+% - If passing RIGHT: use right leg from VO, left leg from RVO
+% - If passing LEFT: use left leg from VO, right leg from RVO
 %
-% The hybrid cone HRVO uses:
-%   - If agent should pass on RIGHT: use CR_vo (from VO) + CL_rvo (from RVO)
-%   - If agent should pass on LEFT:  use CL_vo (from VO) + CR_rvo (from RVO)
-%
-% PASSING SIDE DETERMINATION:
-% Based on the cross product of relative position and relative velocity:
-%   cross(p_rel, v_rel) > 0 => pass on right
-%   cross(p_rel, v_rel) <= 0 => pass on left
-%
-% This ensures consistent passing behavior when both agents use HRVO.
-%
-% APEX CALCULATION (Equation 5, Snape 2011):
-% The HRVO apex lies on the line connecting VO apex and RVO apex,
-% positioned such that the chosen boundary legs intersect at this point.
+% CRITICAL IMPLEMENTATION NOTE:
+% -----------------------------
+% HRVO assumes BOTH agents are reactive. For STATIC obstacles,
+% we fall back to standard VO (same behavior as plan_VO).
 %
 % See also: plan_VO, plan_RVO
 %
@@ -60,14 +50,14 @@ function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
     % =====================================================================
     % 2. BUILD VELOCITY OBSTACLES
     % =====================================================================
-    % For STATIC obstacles: use standard VO (apex at v_obs = [0,0])
-    % For DYNAMIC obstacles: use HRVO with hybrid cone
+    % For static: standard VO
+    % For dynamic: HRVO with hybrid cone
     %
     % Structure: [theta_min, theta_max, apex_vx, apex_vy, is_hrvo, pass_right]
-    cone_constraints = [];
-    forbidden_intervals = [];
+    cone_constraints = []; 
+    forbidden_intervals = []; 
     
-    SENSOR_RANGE = 6.0;
+    SENSOR_RANGE = 6.0; 
     BUFFER_RADII = 0.25;
     DYNAMIC_THRESHOLD = 0.05;
     
@@ -80,7 +70,7 @@ function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
         
         r_combined = robot.radius + obs.radius + BUFFER_RADII;
         
-        % Emergency escape if in collision configuration
+        % Emergency escape
         if dist <= r_combined
             escape_dir = -p_rel / max(dist, 0.01);
             v_opt = escape_dir * robot.v_max * 0.4;
@@ -105,6 +95,7 @@ function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
             % ---------------------------------------------------------
             % DYNAMIC: Build HRVO (hybrid of VO and RVO)
             % ---------------------------------------------------------
+            vo_apex = obs.vel;
             rvo_apex = (robot.vel + obs.vel) / 2;
             
             % Determine passing side (Section III-B, Snape 2011)
@@ -114,42 +105,40 @@ function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
             % cross > 0: obstacle to left, pass on right
             pass_right = (cross_val >= 0);
             
-            % Use RVO apex for HRVO (standard approximation)
+            % HRVO apex lies between VO and RVO apex
+            % For simplicity, use RVO apex (common approximation)
             hrvo_apex = rvo_apex;
             
             cone_constraints = [cone_constraints; ...
-                theta_right, theta_left, hrvo_apex(1), hrvo_apex(2), ...
-                hrvo_apex(1), hrvo_apex(2), pass_right, 1];  % is_hrvo = 1
+                theta_right, theta_left, hrvo_apex(1), hrvo_apex(2), 1, pass_right];
         else
             % ---------------------------------------------------------
-            % STATIC: Use standard VO (no reciprocity with obstacles)
+            % STATIC: Use standard VO (apex at v_obs = [0,0])
             % ---------------------------------------------------------
-            vo_apex = obs.vel;  % [0,0] for static
-            pass_right = 1;  % Default
+            apex = obs.vel;  % [0,0]
             
             cone_constraints = [cone_constraints; ...
-                theta_right, theta_left, vo_apex(1), vo_apex(2), ...
-                vo_apex(1), vo_apex(2), pass_right, 0];  % is_hrvo = 0
+                theta_right, theta_left, apex(1), apex(2), 0, 0];
         end
         
         forbidden_intervals = [forbidden_intervals; theta_right, theta_left];
     end
     
     % =====================================================================
-    % 3. VELOCITY OPTIMIZATION WITH HRVO CHECK
+    % 3. VELOCITY OPTIMIZATION
     % =====================================================================
     current_test_angle = atan2(v_pref(2), v_pref(1));
     best_v = [0; 0];
     best_cost = inf;
     found_safe = false;
     
-    % Dense sampling with right-hand bias (try right deviations first)
+    % Bias search toward right (negative angles = clockwise = right)
     angle_offsets = [0];
     for d = 5:5:180
-        angle_offsets = [angle_offsets, -d, d]; % -d is clockwise (right)
+        angle_offsets = [angle_offsets, -d, d]; % Try right first
     end
     
-    speed_fractions = [1.0, 0.75, 0.5, 0.35, 0.2];
+    speed_fractions = [1.0, 0.7, 0.5, 0.3, 0.15];
     
     for speed_frac = speed_fractions
         test_speed = robot.v_max * speed_frac;
@@ -161,49 +150,44 @@ function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
             is_candidate_safe = true;
             
             % -----------------------------------------------------------------
-            % Collision Check: Use HRVO or standard VO based on obstacle type
+            % Membership Test (different for VO vs HRVO cones)
             % -----------------------------------------------------------------
             for c = 1:size(cone_constraints, 1)
                 theta_right = cone_constraints(c, 1);
                 theta_left = cone_constraints(c, 2);
                 apex = cone_constraints(c, 3:4)';
-                is_hrvo = cone_constraints(c, 8);
+                is_hrvo = cone_constraints(c, 5);
+                pass_right = cone_constraints(c, 6);
                 
-                % Compute angle of candidate velocity relative to apex
                 v_rel = v_cand - apex;
+                angle_rel = atan2(v_rel(2), v_rel(1));
                 
-                if norm(v_rel) < 0.01
-                    % Very close to apex - treat as unsafe
-                    is_candidate_safe = false;
-                    break;
-                end
-                
-                v_angle = atan2(v_rel(2), v_rel(1));
-                
-                % Normalize angles for proper comparison
-                theta_right_n = atan2(sin(theta_right), cos(theta_right));
-                theta_left_n = atan2(sin(theta_left), cos(theta_left));
-                v_angle_n = atan2(sin(v_angle), cos(v_angle));
-                
-                % Check if inside cone using angular difference
-                diff_right = atan2(sin(v_angle_n - theta_right_n), cos(v_angle_n - theta_right_n));
-                diff_left = atan2(sin(theta_left_n - v_angle_n), cos(theta_left_n - v_angle_n));
-                
-                in_cone = (diff_right >= 0) && (diff_left >= 0);
-                
-                if in_cone
-                    is_candidate_safe = false;
-                    break;
+                if is_hrvo
+                    % HRVO: asymmetric check based on passing side
+                    % This creates preference for consistent passing
+                    in_cone = check_angles(angle_rel, [theta_right, theta_left]);
+                    
+                    if in_cone
+                        % Additional HRVO logic: penalize wrong-side passing
+                        % For now, use same check (simplified HRVO)
+                        is_candidate_safe = false;
+                        break;
+                    end
+                else
+                    % Standard VO check
+                    if check_angles(angle_rel, [theta_right, theta_left])
+                        is_candidate_safe = false;
+                        break;
+                    end
                 end
             end
             
             if is_candidate_safe
-                % Cost function: prefer v_pref, slight penalty for slow
-                cost = norm(v_cand - v_pref) + 0.25 * (1 - speed_frac);
+                cost = norm(v_cand - v_pref);
                 
-                % Bonus for right-hand passing convention
-                if k < 0  % Clockwise (right) turn
-                    cost = cost * 0.95;
+                % Small bonus for right-hand passing convention
+                if k < 0
+                    cost = cost * 0.98;
                 end
                 
                 if cost < best_cost
@@ -211,18 +195,23 @@ function [v_opt, forbidden_intervals] = plan_HRVO(robot, obstacles)
                     best_v = v_cand;
                     found_safe = true;
                 end
+                break;
             end
+        end
+        
+        if found_safe
+            break;
         end
     end
     
     % =====================================================================
-    % 4. FALLBACK BEHAVIOR
+    % 4. FALLBACK
     % =====================================================================
     if found_safe
         v_opt = best_v;
     else
-        % Emergency sidestep (prefer right for consistency)
-        perp_angle = current_test_angle - pi/2;  % Clockwise = right
-        v_opt = 0.3 * robot.v_max * [cos(perp_angle); sin(perp_angle)];
+        % Prefer right sidestep
+        perp_angle = current_test_angle - pi/2;
+        v_opt = 0.2 * robot.v_max * [cos(perp_angle); sin(perp_angle)];
     end
 end

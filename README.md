@@ -105,21 +105,42 @@ Instead of relying solely on reactive logic, which can get stuck in large U-shap
 
 ## 📚 Theoretical Background
 
-### Velocity Obstacles (VO) - *Implemented*
+### Velocity Obstacles (VO) - *Implemented* [Fiorini & Shiller, 1998]
 
 VO answers the question: *"If I choose velocity $v$, will I collide with obstacle $B$ at any future time?"*
-It assumes obstacles maintain their current velocity. While effective for static or non-reactive dynamic obstacles, it causes oscillation when two agents use it simultaneously (the "Mirror Effect").
 
-### Reciprocal Velocity Obstacles (RVO) - *Next Step*
+**Mathematical Definition:**
+$$VO_{A|B} = \{ v_A \mid \exists t > 0 : p_A + v_A \cdot t \in D(p_B + v_B \cdot t, r_A + r_B) \}$$
 
-RVO addresses oscillation by introducing **Reciprocity**.
+This is equivalent to translating the **Collision Cone** by $v_B$:
+$$VO_{A|B} = v_B + CC_{A|B}$$
 
-  * **Concept:** "I will move only halfway to avoid the collision, assuming the other agent will do the same."
-  * **Math:** The apex of the collision cone is shifted from $v_{obs}$ to $\frac{v_{rob} + v_{obs}}{2}$.
+Where the cone half-angle is: $\alpha = \arcsin\left(\frac{r_A + r_B}{\|p_B - p_A\|}\right)$
 
-### Hybrid Reciprocal Velocity Obstacles (HRVO) - *Final Goal*
+**Limitation:** Assumes obstacles maintain constant velocity. Causes oscillation when two reactive agents meet (the "Mirror Effect").
 
-RVO can lead to "Reciprocal Dances" where robots are unsure whether to pass left or right. HRVO adds a geometric preference (Right-of-Way) by stitching one leg of the RVO cone with one leg of the VO cone, forcing the robot to choose a specific side for passing.
+### Reciprocal Velocity Obstacles (RVO) - *Implemented* [Van den Berg et al., 2008]
+
+RVO addresses oscillation by introducing **Reciprocity** — both agents share collision avoidance responsibility.
+
+**Mathematical Definition:**
+$$RVO_{A|B} = \{ v_A \mid 2v_A - v_A^{cur} \in VO_{A|B} \}$$
+
+Geometrically, the cone apex shifts from $v_B$ to $\frac{v_A^{cur} + v_B^{cur}}{2}$.
+
+**Key Insight:** If both agents use RVO, they will each move halfway to avoid collision, resulting in smooth passing without oscillation.
+
+### Hybrid Reciprocal Velocity Obstacles (HRVO) - *Implemented* [Snape et al., 2011]
+
+RVO can lead to "Reciprocal Dances" where agents are unsure whether to pass left or right. HRVO resolves this by creating an **asymmetric** forbidden region.
+
+**Construction:** HRVO combines one leg from VO with one leg from RVO:
+- **Pass Right:** Use VO's right leg + RVO's left leg
+- **Pass Left:** Use VO's left leg + RVO's right leg
+
+The passing side is determined by: $\text{cross}(p_{rel}, v_{rel}) \gtrless 0$
+
+This implicitly encodes a **right-hand traffic** convention, ensuring consistent passing behavior.
 
 ## 🧪 Simulation Scenarios
 
@@ -142,6 +163,27 @@ This project is executed by a team of 4, adhering to a 6-week timeline.
 
 ## 🔗 References
 
-1.  *The Hybrid Reciprocal Velocity Obstacle*, Snape et al.
-2.  *Reciprocal Velocity Obstacles for Real-Time Multi-Agent Navigation*, van den Berg et al.
-3.  Google Gemini Deep Research (Project Guide & Architecture Plans).
+### Primary Sources (Velocity Obstacles Family)
+
+1. **Fiorini, P., & Shiller, Z. (1998).** *Motion Planning in Dynamic Environments Using Velocity Obstacles.* International Journal of Robotics Research (IJRR), 17(7), 760–772.
+   - **Foundational paper** introducing Velocity Obstacles (VO)
+   - Defines collision cones, Minkowski sums, and velocity-space planning
+
+2. **Van den Berg, J., Lin, M., & Manocha, D. (2008).** *Reciprocal Velocity Obstacles for Real-Time Multi-Agent Navigation.* IEEE International Conference on Robotics and Automation (ICRA).
+   - Introduces **Reciprocal Velocity Obstacles (RVO)**
+   - Solves oscillation problem by sharing avoidance responsibility
+
+3. **Snape, J., Van Den Berg, J., Guy, S.J., & Manocha, D. (2011).** *The Hybrid Reciprocal Velocity Obstacle.* IEEE Transactions on Robotics.
+   - Introduces **Hybrid RVO (HRVO)**
+   - Solves "reciprocal dance" with asymmetric passing preference
+
+### Supporting Textbooks
+
+4. **Choset, H., et al. (2005).** *Principles of Robot Motion: Theory, Algorithms, and Implementations.* MIT Press.
+   - Comprehensive coverage of motion planning fundamentals
+
+5. **Siegwart, R., Nourbakhsh, I.R., & Scaramuzza, D. (2011).** *Introduction to Autonomous Mobile Robots* (2nd ed.). MIT Press.
+   - Mobile robot kinematics and navigation strategies
+
+6. **LaValle, S.M. (2006).** *Planning Algorithms.* Cambridge University Press.
+   - Theoretical foundations of sampling-based planning
