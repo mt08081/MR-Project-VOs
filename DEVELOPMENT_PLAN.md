@@ -201,14 +201,14 @@ MR_Project/
 
 ### 4.4 Implementation Checklist
 
-- [ ] Modify `Robot.m` class to add `status`, `arrival_time`, `id` properties
-- [ ] Create `multi_agent_simulation.m` with robots array
-- [ ] Implement `update_robot_status()` function
-- [ ] Implement `all_robots_finished()` termination check
-- [ ] Implement `check_all_collisions()` for N robots
-- [ ] Create multi-robot HUD visualization
-- [ ] Update `draw_robot_with_status()` for status-based coloring
-- [ ] Test with 4, 8, 16 robots
+- [x] Modify `Robot.m` class to add `status`, `arrival_time`, `id` properties
+- [x] Create `multi_agent_simulation.m` with robots array
+- [x] Implement `update_robot_status()` function
+- [x] Implement `all_robots_finished()` termination check
+- [x] Implement `check_all_collisions()` for N robots
+- [x] Create multi-robot HUD visualization
+- [x] Update `draw_robot_with_status()` for status-based coloring
+- [x] Test with 4, 8, 16 robots
 
 ---
 
@@ -402,14 +402,14 @@ end
 
 ### 5.4 Implementation Checklist
 
-- [ ] Create `scenarios/multi_agent/` directory
-- [ ] Implement `crossing_4.m`
-- [ ] Implement `swarm_8.m`
-- [ ] Implement `wall_corridor.m`
-- [ ] Implement `dense_crowd.m`
-- [ ] Implement `interactive.m` with mouse callbacks
-- [ ] Add scenario loader to `multi_agent_simulation.m`
-- [ ] Test each scenario with VO, RVO, and HRVO
+- [x] Create `scenarios/multi_agent/` directory
+- [x] Implement `crossing_4.m`
+- [x] Implement `swarm_8.m`
+- [x] Implement `wall_corridor.m`
+- [x] Implement `dense_crowd.m`
+- [x] Implement `interactive.m` with mouse callbacks
+- [x] Add scenario loader to `multi_agent_simulation.m`
+- [x] Test each scenario with VO, RVO, and HRVO
 
 ---
 

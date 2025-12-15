@@ -8,6 +8,9 @@ classdef Robot
         v_max       
         goal        
         color = 'b'; 
+        % Multi-Agent Status Properties (Phase 4)
+        status = 'navigating'  % 'navigating' | 'arrived' | 'waiting' | 'crashed'
+        arrival_time = NaN     % Time when robot reached goal
     end
     
     methods
@@ -19,6 +22,8 @@ classdef Robot
             obj.radius = radius;
             obj.v_max = v_max;
             obj.goal = goal;
+            obj.status = 'navigating';
+            obj.arrival_time = NaN;
         end
         
         function obj = move(obj, v_opt_vector, dt)

@@ -19,8 +19,8 @@ Our objective is to implement and simulate **Velocity Obstacles (VO)** and its a
 | **Phase 1: VO** | ✅ Complete | Dynamic Velocity Obstacles with multi-speed sampling in `plan_VO.m`. |
 | **Phase 2: RVO** | ✅ Complete | Reciprocal Velocity Obstacles solving oscillation problem in `plan_RVO_new.m`. |
 | **Phase 3: HRVO** | ✅ Complete | Hybrid RVO with true geometric apex intersection in `plan_HRVO_new.m`. |
-| **Phase 4: Multi-Agent** | ⏳ Planned | Full N-robot system with parallel planning and continuous simulation. |
-| **Phase 5: Scenarios** | ⏳ Planned | Extended scenarios including interactive robot placement mode. |
+| **Phase 4: Multi-Agent** | ✅ Complete | Full N-robot system in `multi_agent_simulation.m` with parallel planning. |
+| **Phase 5: Scenarios** | ✅ Complete | Extended scenarios: `crossing_4`, `swarm_8`, `dense_crowd`, `wall_corridor`, `interactive`. |
 | **Phase 6: Maze Demo** | ⏳ Planned | Global planner integration (A*/RRT) with random maze generation. |
 
 ## 📂 Repository Structure
@@ -29,41 +29,46 @@ The repository is organized to separate the physical simulation from the algorit
 ```text
 MR-Project-VOs/
 │
-├── main_simulation.m          # ENTRY POINT — Controls the loop, switching, and visualization
-├── README.md                  # Project documentation (updated with HRVO implementation details)
-├── DEVELOPMENT_PLAN.md        # Technical roadmap for Phase 4-6 (Multi-Agent, Scenarios, Maze)
-├── repo_structure.txt         # This file - repository structure overview
-├── .gitignore                 # Ignores generated videos (*.mp4) and temp files
+├── main_simulation.m          # ENTRY POINT — Original 2-robot simulation
+├── multi_agent_simulation.m   # NEW — N-robot multi-agent simulation (Phase 4)
+├── benchmark_algorithms.m     # NEW — Compare VO/RVO/HRVO across all scenarios
+├── demo_presentation.m        # NEW — Quick demo script for presentations
+├── README.md                  # Project documentation
+├── DEVELOPMENT_PLAN.md        # Technical roadmap for Phase 4-6
 │
 ├── classes/                   # Physical object definitions
-│   ├── Robot.m                # Robot state (pos, vel) + Unicycle Kinematics + Controller
-│   ├── Obstacle.m             # Standardized object for Static Walls, Dynamic Blocks, and Agents
-│   └── Simulator.m            # (Legacy/Future use for encapsulation)
+│   ├── Robot.m                # Robot state (pos, vel, status) + Unicycle Kinematics
+│   ├── Obstacle.m             # Standardized object for Static Walls, Dynamic Blocks
+│   └── Simulator.m            # (Future use)
 │
 ├── algorithms/                # The "Brains" - Path Planning Logic
-│   ├── plan_VO.m              # PHASE 1 — Dynamic Velocity Obstacles (✅ Complete)
-│   ├── plan_RVO_new.m         # PHASE 2 — Reciprocal VOs with static/dynamic handling (✅ Complete)
-│   └── plan_HRVO_new.m        # PHASE 3 — Hybrid RVOs with true geometric apex (✅ Complete)
+│   ├── plan_VO.m              # PHASE 1 — Dynamic Velocity Obstacles (✅)
+│   ├── plan_RVO_new.m         # PHASE 2 — Reciprocal VOs (✅)
+│   └── plan_HRVO_new.m        # PHASE 3 — Hybrid RVOs (✅)
 │
-├── scenarios/                 # Modular Scenario Definitions
-│   ├── scenario_hallway.m     # Hallway navigation scenario
-│   ├── scenario_static.m      # Static obstacle scenario
-│   └── VOs/                   # Phase 1-3 Scenarios
-│       ├── basic.m            # 1. Random Static Blocks
-│       ├── u_trap.m           # 2. Local Minimum Stress Test
-│       ├── setup_hallway.m    # 3. Two Robots Head-On (RVO Motivation)
-│       ├── somewhat_busy.m    # 4. Robot vs Moving Obstacles
-│       └── very_busy.m        # 5. The Plaza (Complex Dynamic Environment)
+├── scenarios/
+│   ├── VOs/                   # Original 2-Robot Scenarios
+│   │   ├── basic.m            # Random Static Blocks
+│   │   ├── u_trap.m           # Local Minimum Stress Test
+│   │   ├── setup_hallway.m    # Two Robots Head-On
+│   │   ├── somewhat_busy.m    # Robot vs Moving Obstacles
+│   │   └── very_busy.m        # Complex Dynamic Environment
+│   │
+│   └── multi_agent/           # NEW — Multi-Agent Scenarios (Phase 5)
+│       ├── crossing_4.m       # 4-way intersection (4 robots)
+│       ├── swarm_8.m          # Circle swap (8 robots)
+│       ├── dense_crowd.m      # High-density dynamic (2 robots + 20+ agents)
+│       ├── wall_corridor.m    # Constrained space navigation
+│       └── interactive.m      # User-placed robots via mouse clicks
 │
 ├── utils/                     # Math & Helper Functions
-│   ├── check_angles.m         # Angular interval checking (essential for cones)
-│   ├── check_collision.m      # Collision verification logic
-│   ├── get_tangents.m         # Geometry calculations for tangent lines
-│   ├── intersect_rays.m       # Ray intersection for HRVO hybrid apex computation (NEW)
-│   └── plot_cone.m            # Visualization helper for transparent cones
+│   ├── check_angles.m         # Angular interval checking
+│   ├── check_collision.m      # Collision verification
+│   ├── get_tangents.m         # Tangent line calculations
+│   ├── intersect_rays.m       # Ray intersection for HRVO
+│   └── plot_cone.m            # Cone visualization helper
 │
-└── output/                    # Simulation Artifacts
-    └── *.mp4                  # Generated video recordings of runs
+└── output/                    # Generated video recordings
 ````
 
 ## 🛠️ Usage & Installation
@@ -80,17 +85,41 @@ MR-Project-VOs/
 3.  **Select Algorithm & Scenario:**
     Edit the configuration section at the top of the file:
     ```matlab
-    % Algorithm Selector
-    % 1 = VO (Ready), 2 = RVO (Planned), 3 = HRVO (Planned)
+    % Algorithm Selector: 1 = VO, 2 = RVO, 3 = HRVO
     ALGORITHM = 1; 
 
-    % Scenario Selector
-    % 1 = Basic, 2 = U-Trap, 3 = Hallway, 4 = Busy, 5 = Very Busy
+    % Scenario Selector: 1 = Basic, 2 = U-Trap, 3 = Hallway, 4 = Busy, 5 = Very Busy
     SCENARIO_ID = 3; 
     ```
 4.  **Run:** Click "Run" or press F5.
-5.  **Output:** \* A visualization window will open showing the robot (Blue), goal (Green X), and obstacles (Red).
-      * Video recordings are automatically saved to the `output/` folder.
+5.  **Output:** Videos saved to `output/` folder.
+
+### Running Multi-Agent Simulations (NEW!)
+
+1. Open `multi_agent_simulation.m` in MATLAB.
+2. Configure:
+   ```matlab
+   ALGORITHM = 1;    % 1=VO, 2=RVO, 3=HRVO
+   SCENARIO_ID = 1;  % 1=crossing_4, 2=swarm_8, 3=dense_crowd, 4=wall_corridor, 5=interactive
+   ```
+3. Run and watch N robots coordinate!
+
+### Quick Demos for Presentations
+
+```matlab
+% Open demo_presentation.m
+DEMO_TYPE = 2;   % 2=crossing, 3=swarm, 4=dense, 5=corridor
+ALGORITHM = 1;   % 1=VO, 2=RVO, 3=HRVO
+% Run!
+```
+
+### Benchmark All Algorithms
+
+```matlab
+% Run benchmark_algorithms.m
+% Compares VO/RVO/HRVO on all scenarios automatically
+% Outputs a summary table with success rates and times
+```
 
 ## 🧠 Architectural Highlights
 
