@@ -1,4 +1,4 @@
-function [v_cmd, current_waypoint_idx, waypoint_reached] = waypoint_follower(robot, waypoints, current_waypoint_idx, obstacles, planner_type, lookahead)
+function [v_cmd, current_waypoint_idx, waypoint_reached, cones] = waypoint_follower(robot, waypoints, current_waypoint_idx, obstacles, planner_type, lookahead)
 % WAYPOINT_FOLLOWER Follow waypoints using local reactive planner
 %
 % This function demonstrates hierarchical planning:
@@ -17,6 +17,7 @@ function [v_cmd, current_waypoint_idx, waypoint_reached] = waypoint_follower(rob
 %   v_cmd              - [vx, vy] velocity command
 %   current_waypoint_idx - Updated waypoint index
 %   waypoint_reached   - True if final waypoint reached
+%   cones              - Velocity obstacle cones [theta_min, theta_max, apex_x, apex_y]
 
     if nargin < 6
         lookahead = 1;  % Direct to current waypoint
@@ -24,6 +25,7 @@ function [v_cmd, current_waypoint_idx, waypoint_reached] = waypoint_follower(rob
     
     waypoint_reached = false;
     num_waypoints = size(waypoints, 1);
+    cones = [];  % Initialize cones output
     
     % Check if done
     if current_waypoint_idx > num_waypoints
@@ -64,14 +66,14 @@ function [v_cmd, current_waypoint_idx, waypoint_reached] = waypoint_follower(rob
                        robot.radius, robot.v_max, target_waypoint);
     temp_robot.vel = robot.vel;
     
-    % Call the local planner
+    % Call the local planner (returns velocity and cones for visualization)
     switch upper(planner_type)
         case 'VO'
-            v_cmd = plan_VO(temp_robot, obstacles);
+            [v_cmd, cones] = plan_VO(temp_robot, obstacles);
         case 'RVO'
-            v_cmd = plan_RVO_new(temp_robot, obstacles);
+            [v_cmd, cones] = plan_RVO_new(temp_robot, obstacles);
         case 'HRVO'
-            v_cmd = plan_HRVO_new(temp_robot, obstacles);
+            [v_cmd, cones] = plan_HRVO_new(temp_robot, obstacles);
         otherwise
             error('Unknown planner type: %s', planner_type);
     end

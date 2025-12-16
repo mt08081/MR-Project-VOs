@@ -22,7 +22,7 @@ SAVE_VIDEO = true;
 % 1 = Velocity Obstacles (VO)
 % 2 = Reciprocal VO (RVO)
 % 3 = Hybrid RVO (HRVO)
-ALGORITHM = 1; 
+ALGORITHM = 2; 
 
 % Multi-Agent Scenario Selector
 % 1 = Crossing 4-Way Intersection
@@ -330,11 +330,28 @@ function h_handles = draw_multi_scene(robots, obstacles, all_cones, all_v_opts)
     N = length(robots);
     robot_colors = lines(N);
     
-    % Draw velocity cones for navigating robots (optional, first robot only to reduce clutter)
-    if N <= 4 && ~isempty(all_cones{1})
-        for c = 1:min(size(all_cones{1}, 1), 5)  % Limit cones shown
-            if size(all_cones{1}, 1) >= c
-                p = plot_cone(robots(1).pos, all_cones{1}(c,1), all_cones{1}(c,2), 4.0, 'm');
+    % Cone colors for each robot (semi-transparent, matching robot colors)
+    cone_colors = robot_colors * 0.8;  % Slightly darker for cones
+    
+    % Draw velocity cones for ALL navigating robots (with correct apex positions)
+    % For swarms, limit cones shown per robot to reduce visual clutter
+    MAX_CONES_PER_ROBOT = 8;  % Limit cones per robot
+    SHOW_CONES_FOR_N_ROBOTS = min(N, 8);  % Show cones for first N robots
+    
+    for i = 1:SHOW_CONES_FOR_N_ROBOTS
+        if ~isempty(all_cones{i}) && ~strcmp(robots(i).status, 'arrived') && ~strcmp(robots(i).status, 'crashed')
+            num_cones = min(size(all_cones{i}, 1), MAX_CONES_PER_ROBOT);
+            for c = 1:num_cones
+                % Use the calculated apex (columns 3-4) for correct VO/RVO/HRVO visualization
+                % The apex in velocity space is translated to position space for drawing
+                if size(all_cones{i}, 2) >= 4
+                    apex = robots(i).pos + all_cones{i}(c, 3:4)';  % Translate apex to world coords
+                else
+                    apex = robots(i).pos;  % Fallback if no apex data
+                end
+                
+                % Use robot's color for its cones (with transparency)
+                p = plot_cone(apex, all_cones{i}(c,1), all_cones{i}(c,2), 4.0, cone_colors(i,:));
                 set(p, 'HandleVisibility', 'off');
                 h_handles = [h_handles; p];
             end

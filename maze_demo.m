@@ -15,7 +15,7 @@ clear; clc; close all;
 addpath('algorithms', 'classes', 'utils', 'global_planner');
 
 %% ======================= CONFIGURATION =======================
-config.maze_type     = 'rooms';   % 'simple', 'corridor', 'rooms'
+config.maze_type     = 'simple';   % 'simple', 'corridor', 'rooms'
 config.grid_size     = [30, 30];   % Grid cells
 config.cell_size     = 0.5;        % Meters per cell
 config.local_planner = 'VO';       % 'VO', 'RVO', 'HRVO'
@@ -233,7 +233,7 @@ while t < config.max_time
     end
     
     %% Plan for main robot (waypoint follower + local planner)
-    [v_cmd, current_wp, goal_reached] = ...
+    [v_cmd, current_wp, goal_reached, robot_cones] = ...
         waypoint_follower(robot, waypoints, current_wp, obstacles_for_robot, config.local_planner, 1);
     
     % Detect if local planner is deviating from A* path direction
@@ -305,6 +305,25 @@ while t < config.max_time
         
         xlim([robot.pos(1)-local_radius, robot.pos(1)+local_radius]);
         ylim([robot.pos(2)-local_radius, robot.pos(2)+local_radius]);
+        
+        % Draw VO/RVO/HRVO cones (with correct apex positions)
+        % Cones format: [theta_min, theta_max, apex_x, apex_y]
+        if ~isempty(robot_cones)
+            MAX_CONES_TO_SHOW = 10;  % Limit for visual clarity
+            num_cones = min(size(robot_cones, 1), MAX_CONES_TO_SHOW);
+            for c = 1:num_cones
+                % Calculate apex position in world coordinates
+                % apex = robot position + velocity-space apex offset
+                if size(robot_cones, 2) >= 4
+                    apex_offset = robot_cones(c, 3:4);
+                    apex = robot.pos(:) + apex_offset(:);  % Ensure column vector
+                else
+                    apex = robot.pos(:);  % Ensure column vector
+                end
+                % Draw cone with magenta color
+                plot_cone(apex, robot_cones(c, 1), robot_cones(c, 2), local_radius*0.8, [0.8, 0.2, 0.8]);
+            end
+        end
         
         % Draw wall obstacles in local view (gray circles)
         for i = 1:length(wall_obstacles)

@@ -57,7 +57,7 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
     cone_constraints = []; 
     forbidden_intervals = []; 
     
-    SENSOR_RANGE = 2.0; 
+    SENSOR_RANGE = 5; 
     BUFFER_RADII = 0.25;
     DYNAMIC_THRESHOLD = 0.05;
     
@@ -145,8 +145,9 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
             hrvo_apex = intersect_rays(origin_vo_leg, angle_vo_leg, ...
                                        origin_rvo_leg, angle_rvo_leg);
             
+            % Store cone with HRVO apex (4 columns, consistent with VO/RVO)
             cone_constraints = [cone_constraints; ...
-                hrvo_theta_right, hrvo_theta_left, hrvo_apex(1), hrvo_apex(2), 1, pass_right];
+                hrvo_theta_right, hrvo_theta_left, hrvo_apex(1), hrvo_apex(2)];
         else
             % ---------------------------------------------------------
             % STATIC: Use standard VO (apex at v_obs = [0,0])
@@ -154,11 +155,13 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
             apex = obs.vel;  % [0,0]
             
             cone_constraints = [cone_constraints; ...
-                theta_right, theta_left, apex(1), apex(2), 0, 0];
+                theta_right, theta_left, apex(1), apex(2)];
         end
-        
-        forbidden_intervals = [forbidden_intervals; theta_right, theta_left];
     end
+    
+    % Return cone_constraints (includes apex data for visualization)
+    % Format: [theta_min, theta_max, apex_x, apex_y] - consistent with VO/RVO
+    forbidden_intervals = cone_constraints;
     
     % =====================================================================
     % 3. VELOCITY OPTIMIZATION
@@ -187,35 +190,20 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
             is_candidate_safe = true;
             
             % -----------------------------------------------------------------
-            % Membership Test (different for VO vs HRVO cones)
+            % Membership Test (check if velocity is inside forbidden cone)
             % -----------------------------------------------------------------
             for c = 1:size(cone_constraints, 1)
                 theta_right = cone_constraints(c, 1);
                 theta_left = cone_constraints(c, 2);
                 apex = cone_constraints(c, 3:4)';
-                is_hrvo = cone_constraints(c, 5);
-                pass_right = cone_constraints(c, 6);
                 
+                % v is forbidden if (v - apex) direction is in collision cone
                 v_rel = v_cand - apex;
                 angle_rel = atan2(v_rel(2), v_rel(1));
                 
-                if is_hrvo
-                    % HRVO: asymmetric check based on passing side
-                    % This creates preference for consistent passing
-                    in_cone = check_angles(angle_rel, [theta_right, theta_left]);
-                    
-                    if in_cone
-                        % Additional HRVO logic: penalize wrong-side passing
-                        % For now, use same check (simplified HRVO)
-                        is_candidate_safe = false;
-                        break;
-                    end
-                else
-                    % Standard VO check
-                    if check_angles(angle_rel, [theta_right, theta_left])
-                        is_candidate_safe = false;
-                        break;
-                    end
+                if check_angles(angle_rel, [theta_right, theta_left])
+                    is_candidate_safe = false;
+                    break;
                 end
             end
             

@@ -21,7 +21,7 @@ SAVE_VIDEO = true;
 % 1 = Velocity Obstacles (VO)
 % 2 = Reciprocal VO (RVO)
 % 3 = Hybrid RVO (HRVO)
-ALGORITHM = 3; 
+ALGORITHM = 2; 
 
 % Scenario Selector
 % 1 = Random Blocks
@@ -29,7 +29,7 @@ ALGORITHM = 3;
 % 3 = Hallway (Head-on)
 % 4 = Somewhat Busy Plaza
 % 5 = Very Busy Plaza
-SCENARIO_ID = 5; 
+SCENARIO_ID = 3; 
 
 % Safety & Deadlock Parameters
 MAX_BLOCKED_DURATION = 5.0; 
@@ -191,9 +191,18 @@ function h_handles = draw_scene(r1, r2, obstacles, cones1, v1, v2)
     h_handles = [];
     
     % Draw Cones (HandleVisibility off prevents legend clutter)
+    % Cones are drawn in velocity space, translated to robot position for visualization
+    % cones1 format: [theta_min, theta_max, apex_vx, apex_vy]
     if ~isempty(cones1)
         for i = 1:size(cones1, 1)
-            p = plot_cone(r1.pos, cones1(i,1), cones1(i,2), 5.0, 'm');
+            % Use the calculated apex (columns 3-4) instead of ignoring it
+            % The apex in velocity space is translated to position space for drawing
+            if size(cones1, 2) >= 4
+                apex = r1.pos + cones1(i, 3:4)';  % Translate apex to world coords
+            else
+                apex = r1.pos;  % Fallback if no apex data
+            end
+            p = plot_cone(apex, cones1(i,1), cones1(i,2), 5.0, 'm');
             set(p, 'HandleVisibility', 'off'); % <--- FIX
             h_handles = [h_handles; p];
         end

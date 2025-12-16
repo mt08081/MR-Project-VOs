@@ -65,7 +65,7 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     forbidden_intervals = []; 
     
     % Sensor range - finite time horizon (Section 4.2, Fiorini 1998)
-    SENSOR_RANGE = 2.0; 
+    SENSOR_RANGE = 5; 
     % Safety buffer for uncertainty (Siegwart et al. 2011, Chapter 6)
     BUFFER_RADII = 0.25;
     
@@ -104,9 +104,12 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
         
         % Store cone with obstacle velocity for VO translation
         % VO = v_B + CC, so we check if (v_A - v_B) is in CC
+        % For VO, apex = obstacle velocity (v_B)
         cone_constraints = [cone_constraints; theta_min, theta_max, obs.vel(1), obs.vel(2)];
-        forbidden_intervals = [forbidden_intervals; theta_min, theta_max];
     end
+    
+    % Return cone_constraints (includes apex data for visualization)
+    forbidden_intervals = cone_constraints;
     
     % =====================================================================
     % 3. VELOCITY OPTIMIZATION (Sampling-based search)
