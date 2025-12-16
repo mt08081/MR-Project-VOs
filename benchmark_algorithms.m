@@ -72,13 +72,14 @@ for s = 1:length(SCENARIOS)
                 end
             end
             
-            % Plan and move each robot
+            % PHASE 1: Planning for all robots (parallel - same world state)
+            all_v_opts = zeros(2, N);
             for i = 1:N
                 if strcmp(robots(i).status, 'arrived') || strcmp(robots(i).status, 'crashed')
                     continue;
                 end
                 
-                % Perception: obstacles + other robots
+                % Perception: obstacles + other robots (all at time t)
                 obs_for_robot_i = obstacles;
                 for j = 1:N
                     if i ~= j
@@ -88,10 +89,17 @@ for s = 1:length(SCENARIOS)
                 end
                 
                 % Planning
-                v_opt = run_planner(algo_id, robots(i), obs_for_robot_i);
+                all_v_opts(:, i) = run_planner(algo_id, robots(i), obs_for_robot_i);
+            end
+            
+            % PHASE 2: Execution for all robots (parallel - simultaneous)
+            for i = 1:N
+                if strcmp(robots(i).status, 'arrived') || strcmp(robots(i).status, 'crashed')
+                    continue;
+                end
                 
                 % Action
-                robots(i) = robots(i).move(v_opt, dt);
+                robots(i) = robots(i).move(all_v_opts(:, i), dt);
                 
                 % Update status
                 [robots(i), blocked_start_times(i)] = update_status(...
@@ -155,7 +163,7 @@ for s = 1:length(SCENARIOS)
              results.(scn_name).RVO.avg_time, ...
              results.(scn_name).HRVO.avg_time];
     
-    [~, best_idx] = max(rates);
+    [~, best_idx] = min(times);
     best_names = {'VO', 'RVO', 'HRVO'};
     
     fprintf('║ %-18s ║ %5.0f%% / %.1fs  ║ %5.0f%% / %.1fs  ║ %5.0f%% / %.1fs  ║ %-3s ║\n', ...

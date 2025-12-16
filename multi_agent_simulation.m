@@ -22,7 +22,7 @@ SAVE_VIDEO = true;
 % 1 = Velocity Obstacles (VO)
 % 2 = Reciprocal VO (RVO)
 % 3 = Hybrid RVO (HRVO)
-ALGORITHM = 1; 
+ALGORITHM = 2; 
 
 % Multi-Agent Scenario Selector
 % 1 = Crossing 4-Way Intersection
@@ -30,7 +30,7 @@ ALGORITHM = 1;
 % 3 = Dense Crowd
 % 4 = Wall Corridor
 % 5 = Interactive Mode
-SCENARIO_ID = 5; 
+SCENARIO_ID = 1; 
 
 % Safety & Deadlock Parameters
 MAX_BLOCKED_DURATION = 5.0; 
@@ -86,7 +86,8 @@ for t = 0:dt:T_max
         end
     end
 
-    % --- B. FOR EACH ROBOT: PERCEPTION, PLANNING, ACTION ---
+    % --- B. PHASE 1: PLANNING FOR ALL ROBOTS (Parallel - same world state) ---
+    % All robots plan based on the SAME snapshot of positions/velocities
     all_v_opts = zeros(2, N);  % Store planned velocities
     all_cones = cell(1, N);    % Store cones for visualization
     
@@ -97,7 +98,7 @@ for t = 0:dt:T_max
             continue;
         end
         
-        % 1. Perception: Static obstacles + ALL other robots
+        % 1. Perception: Static obstacles + ALL other robots (at current time t)
         obs_for_robot_i = obstacles;
         for j = 1:N
             if i ~= j
@@ -111,16 +112,24 @@ for t = 0:dt:T_max
         [v_opt, cones] = run_planner(ALGORITHM, robots(i), obs_for_robot_i);
         all_v_opts(:, i) = v_opt;
         all_cones{i} = cones;
+    end
+    
+    % --- C. PHASE 2: EXECUTION FOR ALL ROBOTS (Parallel - simultaneous movement) ---
+    % All robots execute their planned velocities simultaneously
+    for i = 1:N
+        if strcmp(robots(i).status, 'arrived') || strcmp(robots(i).status, 'crashed')
+            continue;
+        end
         
-        % 3. Action: Move Robot i
-        robots(i) = robots(i).move(v_opt, dt);
+        % Execute planned velocity
+        robots(i) = robots(i).move(all_v_opts(:, i), dt);
         
-        % 4. Update Status
+        % Update Status
         [robots(i), blocked_start_times(i)] = update_robot_status(...
             robots(i), t, blocked_start_times(i), MAX_BLOCKED_DURATION, GOAL_THRESHOLD);
     end
     
-    % --- C. COLLISION DETECTION ---
+    % --- D. COLLISION DETECTION ---
     collision_pairs = check_all_collisions(robots, obstacles);
     
     % Mark crashed robots

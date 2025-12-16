@@ -83,25 +83,26 @@ for t = 0:dt:T_max
         end
     end
 
-    % --- B. ROBOT 1: PERCEPTION & PLANNING ---
-    % 1. Perception: Scan for walls + dynamic agents + other robots
+    % --- B. PHASE 1: PLANNING (Both robots see same world state) ---
+    % Robot 1 Planning
     obs_for_r1 = obstacles;
     if ~isempty(robot2)
         % Dynamic VO: See Robot 2 with its CURRENT Velocity
         obs_for_r1 = [obs_for_r1, Obstacle(robot2.pos, robot2.radius, robot2.vel)];
     end
-    
-    % 2. Planning: Call the selected Algorithm
     [v_opt1, cones1] = run_planner(ALGORITHM, robot, obs_for_r1);
     
-    % 3. Action: Move Robot 1
-    robot = robot.move(v_opt1, dt);
-    
-    % --- C. ROBOT 2: PERCEPTION & PLANNING (Optional) ---
+    % Robot 2 Planning (if exists)
     v_opt2 = [0;0]; cones2 = [];
     if ~isempty(robot2)
+        % Robot 2 sees Robot 1 at its CURRENT position (before moving)
         obs_for_r2 = [obstacles, Obstacle(robot.pos, robot.radius, robot.vel)];
         [v_opt2, cones2] = run_planner(ALGORITHM, robot2, obs_for_r2);
+    end
+    
+    % --- C. PHASE 2: EXECUTION (Both robots move simultaneously) ---
+    robot = robot.move(v_opt1, dt);
+    if ~isempty(robot2)
         robot2 = robot2.move(v_opt2, dt);
     end
     
