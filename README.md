@@ -112,6 +112,25 @@ MR-Project-VOs/
    ```
 3. Run and watch N robots coordinate!
 
+### Maze Demo with A* + Local Avoidance (Phase 6)
+
+1. Open `maze_demo.m` in MATLAB.
+2. Configure at top of file:
+   ```matlab
+   config.local_planner = 'VO';    % 'VO', 'RVO', or 'HRVO'
+   config.maze_type = 'simple';    % Maze layout
+   config.record_video = true;     % Auto-save video to output/
+   ```
+3. Run to see hierarchical planning:
+   - **Global layer:** A* computes waypoints through the maze
+   - **Local layer:** VO/RVO/HRVO avoids walls and other robots in real-time
+4. Features:
+   - Dual-view visualization (global path + local avoidance)
+   - Wall obstacles visible in local view
+   - Avoidance indicator (title turns red when deviating from path)
+   - Multi-robot support (main robot + 2 other agents)
+   - Dark theme for presentation visibility
+
 ### Quick Demos for Presentations
 
 ```matlab
