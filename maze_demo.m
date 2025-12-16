@@ -15,10 +15,10 @@ clear; clc; close all;
 addpath('algorithms', 'classes', 'utils', 'global_planner');
 
 %% ======================= CONFIGURATION =======================
-config.maze_type     = 'simple';   % 'simple', 'corridor', 'rooms'
+config.maze_type     = 'corridor';   % 'simple', 'corridor', 'rooms'
 config.grid_size     = [30, 30];   % Grid cells
 config.cell_size     = 0.5;        % Meters per cell
-config.local_planner = 'VO';       % 'VO', 'RVO', 'HRVO'
+config.local_planner = 'HRVO';       % 'VO', 'RVO', 'HRVO'
 config.dt            = 0.1;        % Time step
 config.max_time      = 80;         % Max simulation time
 config.robot_radius  = 0.3;        

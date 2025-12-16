@@ -57,7 +57,7 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
     cone_constraints = []; 
     forbidden_intervals = []; 
     
-    SENSOR_RANGE = 5; 
+    SENSOR_RANGE = 2; 
     BUFFER_RADII = 0.25;
     DYNAMIC_THRESHOLD = 0.05;
     

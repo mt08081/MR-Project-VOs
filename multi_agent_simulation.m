@@ -22,7 +22,7 @@ SAVE_VIDEO = true;
 % 1 = Velocity Obstacles (VO)
 % 2 = Reciprocal VO (RVO)
 % 3 = Hybrid RVO (HRVO)
-ALGORITHM = 2; 
+ALGORITHM = 1; 
 
 % Multi-Agent Scenario Selector
 % 1 = Crossing 4-Way Intersection
@@ -30,7 +30,7 @@ ALGORITHM = 2;
 % 3 = Dense Crowd
 % 4 = Wall Corridor
 % 5 = Interactive Mode
-SCENARIO_ID = 1; 
+SCENARIO_ID = 2; 
 
 % Safety & Deadlock Parameters
 MAX_BLOCKED_DURATION = 5.0; 

@@ -55,7 +55,7 @@ classdef Robot
             obj.pos(1) = obj.pos(1) + vx_actual * dt;
             obj.pos(2) = obj.pos(2) + vy_actual * dt;
             
-            % Store Velocity for other agents to see <--- NEW
+            % Store Velocity for other agents to see
             obj.vel = [vx_actual; vy_actual];
         end
     end
