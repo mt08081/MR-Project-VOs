@@ -65,7 +65,7 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     forbidden_intervals = []; 
     
     % Sensor range - finite time horizon (Section 4.2, Fiorini 1998)
-    SENSOR_RANGE = 6.0; 
+    SENSOR_RANGE = 2; 
     % Safety buffer for uncertainty (Siegwart et al. 2011, Chapter 6)
     BUFFER_RADII = 0.25;
     
@@ -119,7 +119,12 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     found_safe = false;
     
     % Angular search pattern centered on v_pref direction
-    angle_offsets = [0, 5, -5, 10, -10, 15, -15, 20, -20, 30, -30, 45, -45, 60, -60, 75, -75, 90, -90, 120, -120, 150, -150, 180];
+    % Coin-flip to break symmetry bias (prevents "vortex" effect)
+    if rand > 0.5
+        angle_offsets = [0, 5, -5, 10, -10, 15, -15, 20, -20, 30, -30, 45, -45, 60, -60, 75, -75, 90, -90, 120, -120, 150, -150, 180];
+    else
+        angle_offsets = [0, -5, 5, -10, 10, -15, 15, -20, 20, -30, 30, -45, 45, -60, 60, -75, 75, -90, 90, -120, 120, -150, 150, 180];
+    end
     
     % Speed discretization - allows slowing down
     % (Important for non-holonomic systems, Siegwart et al. 2011, Sec 6.3)

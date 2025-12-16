@@ -22,7 +22,7 @@ SAVE_VIDEO = true;
 % 1 = Velocity Obstacles (VO)
 % 2 = Reciprocal VO (RVO)
 % 3 = Hybrid RVO (HRVO)
-ALGORITHM = 2; 
+ALGORITHM = 1; 
 
 % Multi-Agent Scenario Selector
 % 1 = Crossing 4-Way Intersection

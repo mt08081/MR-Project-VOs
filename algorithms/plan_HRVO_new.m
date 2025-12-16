@@ -57,7 +57,7 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
     cone_constraints = []; 
     forbidden_intervals = []; 
     
-    SENSOR_RANGE = 6.0; 
+    SENSOR_RANGE = 2; 
     BUFFER_RADII = 0.25;
     DYNAMIC_THRESHOLD = 0.05;
     
@@ -168,10 +168,11 @@ function [v_opt, forbidden_intervals] = plan_HRVO_new(robot, obstacles)
     best_cost = inf;
     found_safe = false;
     
-    % Bias search toward right (negative angles = clockwise = right)
-    angle_offsets = [0];
-    for d = 5:5:180
-        angle_offsets = [angle_offsets, -d, d]; % Try right first
+    % Coin-flip to break symmetry bias (prevents "vortex" effect)
+    if rand > 0.5
+        angle_offsets = [0, 5, -5, 10, -10, 15, -15, 20, -20, 30, -30, 45, -45, 60, -60, 75, -75, 90, -90, 120, -120, 150, -150, 180];
+    else
+        angle_offsets = [0, -5, 5, -10, 10, -15, 15, -20, 20, -30, 30, -45, 45, -60, 60, -75, 75, -90, 90, -120, 120, -150, 150, 180];
     end
     
     speed_fractions = [1.0, 0.7, 0.5, 0.3, 0.15];
