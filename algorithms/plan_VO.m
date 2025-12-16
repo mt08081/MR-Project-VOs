@@ -65,7 +65,7 @@ function [v_opt, forbidden_intervals] = plan_VO(robot, obstacles)
     forbidden_intervals = []; 
     
     % Sensor range - finite time horizon (Section 4.2, Fiorini 1998)
-    SENSOR_RANGE = 2; 
+    SENSOR_RANGE = 2.0; 
     % Safety buffer for uncertainty (Siegwart et al. 2011, Chapter 6)
     BUFFER_RADII = 0.25;
     

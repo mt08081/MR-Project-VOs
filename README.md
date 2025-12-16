@@ -2,7 +2,7 @@
 # Mobile Robotics Project: Reactive Navigation via Hybrid Reciprocal Velocity Obstacles (HRVO)
 
 **Course:** Mobile Robotics (MR)  
-**Status:** Phase 1-3 Complete (VO/RVO/HRVO) | Phase 4 (Multi-Agent & Global Planning) In Progress  
+**Status:** ✅ All Phases Complete (VO/RVO/HRVO, Multi-Agent, Maze Demo)  
 **Language:** MATLAB (Simulation)
 
 ## 📌 Project Overview
@@ -21,7 +21,7 @@ Our objective is to implement and simulate **Velocity Obstacles (VO)** and its a
 | **Phase 3: HRVO** | ✅ Complete | Hybrid RVO with true geometric apex intersection in `plan_HRVO_new.m`. |
 | **Phase 4: Multi-Agent** | ✅ Complete | Full N-robot system in `multi_agent_simulation.m` with parallel planning. |
 | **Phase 5: Scenarios** | ✅ Complete | Extended scenarios: `crossing_4`, `swarm_8`, `dense_crowd`, `wall_corridor`, `interactive`. |
-| **Phase 6: Maze Demo** | ⏳ Planned | Global planner integration (A*/RRT) with random maze generation. |
+| **Phase 6: Maze Demo** | ✅ Complete | A* global planner + local VO navigation in `maze_demo.m`. |
 
 ## 📂 Repository Structure
 The repository is organized to separate the physical simulation from the algorithmic "brain".
@@ -31,6 +31,7 @@ MR-Project-VOs/
 │
 ├── main_simulation.m          # ENTRY POINT — Original 2-robot simulation
 ├── multi_agent_simulation.m   # NEW — N-robot multi-agent simulation (Phase 4)
+├── maze_demo.m                # NEW — A* + VO hierarchical navigation (Phase 6)
 ├── benchmark_algorithms.m     # NEW — Compare VO/RVO/HRVO across all scenarios
 ├── demo_presentation.m        # NEW — Quick demo script for presentations
 ├── README.md                  # Project documentation
@@ -45,6 +46,13 @@ MR-Project-VOs/
 │   ├── plan_VO.m              # PHASE 1 — Dynamic Velocity Obstacles (✅)
 │   ├── plan_RVO_new.m         # PHASE 2 — Reciprocal VOs (✅)
 │   └── plan_HRVO_new.m        # PHASE 3 — Hybrid RVOs (✅)
+│
+├── global_planner/            # NEW — Global Path Planning (Phase 6)
+│   ├── astar_grid.m           # A* pathfinding on occupancy grid
+│   ├── generate_maze.m        # Maze/environment generator
+│   ├── waypoint_follower.m    # Hierarchical planner integration
+│   ├── path_to_world.m        # Grid-to-world coordinate conversion
+│   └── world_to_cell.m        # World-to-grid coordinate conversion
 │
 ├── scenarios/
 │   ├── VOs/                   # Original 2-Robot Scenarios

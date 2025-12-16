@@ -11,7 +11,7 @@ function [robots, obstacles, map_bounds, scn_name] = crossing_4()
     map_bounds = [-12 12 -12 12];
     
     % Robot parameters
-    robot_radius = 0.4;
+    robot_radius = 0.8;
     robot_v_max = 1.5;
     
     % Pre-allocate robots array

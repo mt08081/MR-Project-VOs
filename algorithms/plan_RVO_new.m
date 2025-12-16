@@ -56,7 +56,7 @@ function [v_opt, forbidden_intervals] = plan_RVO_new(robot, obstacles)
     cone_constraints = []; 
     forbidden_intervals = []; 
     
-    SENSOR_RANGE = 2; 
+    SENSOR_RANGE = 2.0; 
     BUFFER_RADII = 0.25;
     DYNAMIC_THRESHOLD = 0.05; % Velocity threshold to consider obstacle "dynamic"
     
